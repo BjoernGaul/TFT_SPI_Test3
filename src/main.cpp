@@ -81,14 +81,6 @@ const uint8_t BLT = 41;
 const uint8_t BLB = 42;
 const uint8_t joyA = 101;
 const uint8_t joyB = 102;
-const uint8_t walkForward = 201;
-const uint8_t walkBackward = 202;
-const uint8_t walkLeft = 203;
-const uint8_t walkRight = 204;
-const uint8_t turnLeft = 301;
-const uint8_t turnRight = 302;
-const uint8_t goUP = 303;
-const uint8_t goDown = 304;
 uint16_t dataSend[2] = {0, 0};
 
 
