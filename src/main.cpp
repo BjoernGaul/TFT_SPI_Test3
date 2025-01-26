@@ -1,4 +1,4 @@
-//Mac Adresse Remote: 30:C9:22:EC:BE:AC
+//Mac Adresse Remote: 30:C9:22:FF:71:F4
 
 #include <WiFi.h>
 #include <esp_now.h>
@@ -31,6 +31,22 @@ void* buf2;
 
 TFT_eSPI tft = TFT_eSPI(screenHeight, screenWidth); /* TFT instance */
 
+//Joystick
+
+#define xPinA D3  // xPin Joystick A
+#define yPinA D5  // yPin Joystick A
+#define yPinB D6  // yPin Joystick B
+#define xPinB D7  // xPin Joystick B
+
+uint16_t lastxA = 0;
+uint16_t lastyA = 0;
+uint16_t lastxB = 0;
+uint16_t lastyB = 0;
+uint8_t dirB = 0;
+uint8_t dirA = 0;
+unsigned long lastCheckTime = 0;
+const unsigned long checkInterval = 100; // Interval in milliseconds
+
 //Variables
 uint16_t posFLS = 0;
 uint16_t posFLT = 0;
@@ -46,6 +62,24 @@ uint16_t posBLT = 0;
 uint16_t posBLB = 0;
 uint16_t lastPosCheck = 0;
 static const uint16_t isStanding = 69;
+
+//Variables ESP-Now
+const uint8_t sit = 0;
+const uint8_t stand = 1;
+const uint8_t crab = 2;
+const uint8_t FLS = 10;
+const uint8_t FLT = 11;
+const uint8_t FLB = 12;
+const uint8_t FRS = 20;
+const uint8_t FRT = 21;
+const uint8_t FRB = 22;
+const uint8_t BRS = 30;
+const uint8_t BRT = 31;
+const uint8_t BRB = 32;
+const uint8_t BLS = 40;
+const uint8_t BLT = 41;
+const uint8_t BLB = 42;
+uint16_t dataSend[2] = {0, 0};
 
 
 #if LV_USE_LOG != 0
@@ -107,7 +141,7 @@ void touch_calibrate();
 
 int answer = 0;
 
-uint8_t remoteMac[6] = {0x30, 0xC9, 0x22, 0xEC, 0xB9, 0x80};
+const uint8_t remoteMac[6] = {0x30, 0xC9, 0x22, 0xEC, 0xB9, 0x80}; //30:C9:22:FF:71:F4
 void readMacAdress();
 void onDataReceive(const uint8_t * mac, const uint8_t * data, int len) {
   Serial.print("Received data from: ");
@@ -129,23 +163,7 @@ void onDataReceive(const uint8_t * mac, const uint8_t * data, int len) {
   }
 }
 
-//Variables ESP-Now
-uint8_t sit = 0;
-uint8_t stand = 1;
-uint8_t crab = 2;
-uint8_t FLS = 10;
-uint8_t FLT = 11;
-uint8_t FLB = 12;
-uint8_t FRS = 20;
-uint8_t FRT = 21;
-uint8_t FRB = 22;
-uint8_t BRS = 30;
-uint8_t BRT = 31;
-uint8_t BRB = 32;
-uint8_t BLS = 40;
-uint8_t BLT = 41;
-uint8_t BLB = 42;
-int dataSend[2] = {0, 0};
+
 
 
 void setup()
@@ -223,7 +241,7 @@ void setup()
   Serial.println( " LVGL Setup done, starting ESP-Now" );
 
   //ESP-NOW Setup
-  readMacAdress();
+  //readMacAdress();
   WiFi.mode(WIFI_STA);
   if (esp_now_init() != ESP_OK) {
     Serial.println("Error initializing ESP-NOW");
@@ -243,12 +261,32 @@ void setup()
   }else{
     Serial.println("Peer added");
   }
+
+  //Joystick setup
+  pinMode(xPinA, INPUT);
+  pinMode(yPinA, INPUT);
+  lastxA = analogRead(xPinA);
+  lastyA = analogRead(yPinA);
+
   Serial.println("Setup done");
 }
 
 //LOOP /////////////////////////////////////////////////////////////////////////////////////
 void loop()
 {
+  //Joystick
+  unsigned long currentTime = millis();
+  if (currentTime - lastCheckTime >= checkInterval) 
+  {
+    lastCheckTime = currentTime;
+    dirA = readJoystick(xPinA, yPinA);
+    lastxA = analogRead(xPinA);
+    lastyA = analogRead(yPinA);
+    dirB = readJoystick(xPinB, yPinB);
+    lastxB = analogRead(xPinB);
+    lastyB = analogRead(yPinB);
+  }
+  //ESP-NOW
   if(millis() - lastPosCheck > 10000){
     Serial.println("CheckisStanding");
     lastPosCheck = millis();
@@ -261,6 +299,7 @@ void loop()
     lv_obj_clear_state(ui_LimbControl1, LV_STATE_DISABLED);
     lv_obj_clear_state(ui_Walk, LV_STATE_DISABLED);
   }
+  //LVGL
   lv_timer_handler(); /* let the GUI do its work */
   delay(5);
 }
