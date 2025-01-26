@@ -213,6 +213,11 @@ void setup()
 
   touch_calibrate();
   tft.fillScreen(TFT_BLACK);
+  tft.setCursor(20, 0);
+  tft.setTextFont(2);
+  tft.setTextSize(3);
+  tft.setTextColor(TFT_WHITE, TFT_BLACK);
+  tft.println("Starting...");
 
   /*Initialize the display buffer*/
   static lv_disp_draw_buf_t draw_buf;
@@ -265,8 +270,12 @@ void setup()
   //Joystick setup
   pinMode(xPinA, INPUT);
   pinMode(yPinA, INPUT);
+  pinMode(xPinB, INPUT);
+  pinMode(yPinB, INPUT);
   lastxA = analogRead(xPinA);
   lastyA = analogRead(yPinA);
+  lastxB = analogRead(xPinB);
+  lastyB = analogRead(yPinB);
 
   Serial.println("Setup done");
 }
