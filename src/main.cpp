@@ -15,8 +15,8 @@
 /*Don't forget to set Sketchbook location in File/Preferences to the path of your UI project (the parent foder of this INO file)*/
 
 //Set REPEAT_CAL to false to stop calibrating again
-#define CALIBRATION_FILE "/calibrationData"
-#define REPEAT_CAL false
+static const String CALIBRATION_FILE =  "/calibrationData";
+static const bool REPEAT_CAL = false;
 
 /*Change to your screen resolution*/
 static const uint16_t screenWidth  = 480;
@@ -94,50 +94,15 @@ void my_print(const char * buf)
 #endif
 
 /* Display flushing */
-void my_disp_flush( lv_disp_drv_t *disp, const lv_area_t *area, lv_color_t *color_p )
-{
-    uint32_t w = ( area->x2 - area->x1 + 1 );
-    uint32_t h = ( area->y2 - area->y1 + 1 );
-
-    tft.startWrite();
-    tft.setAddrWindow( area->x1, area->y1, w, h );
-    tft.pushColors( ( uint16_t * )&color_p->full, w * h, true );
-    tft.endWrite();
-
-    lv_disp_flush_ready( disp );
-}
+void my_disp_flush( lv_disp_drv_t *disp, const lv_area_t *area, lv_color_t *color_p );
 
 /*Read the touchpad*/
-void my_touchpad_read( lv_indev_drv_t * indev_driver, lv_indev_data_t * data )
-{
-    uint16_t touchX = 0, touchY = 0;
-
-    if( !tft.getTouch( &touchX, &touchY, 600 ) )
-    {
-        data->state = LV_INDEV_STATE_REL;
-    }
-    else
-    {
-        data->state = LV_INDEV_STATE_PR;
-
-        /*Set the coordinates*/
-        data->point.x = touchX;
-        data->point.y = touchY;
-
-        Serial.print( "Data x " );
-        Serial.println( touchX );
-
-        Serial.print( "Data y " );
-        Serial.println( touchY );
-        Serial.printf("posFLS: %d\n", posFLS);
-        Serial.printf("posFLT: %d\n", posFLT);
-        Serial.printf("posFLB: %d\n", posFLB);
-    }
-}
-
+void my_touchpad_read( lv_indev_drv_t * indev_driver, lv_indev_data_t * data );
 
 //Funktions
 void touch_calibrate();
+void pauseESPNow();
+void resumeESPNow();
 
 //ESP-NOW
 
@@ -145,66 +110,55 @@ int answer = 0;
 
 const uint8_t remoteMac[6] = {0x30, 0xC9, 0x22, 0xEC, 0xB9, 0x80}; //30:C9:22:FF:71:F4
 void readMacAdress();
-void onDataReceive(const uint8_t * mac, const uint8_t * data, int len) {
-  Serial.print("Received data from: ");
-  int receivedNumber;
-  memcpy(&receivedNumber, data, sizeof(receivedNumber));
-  Serial.println(receivedNumber);
-  if (receivedNumber == 3) {
-    esp_err_t result = esp_now_send(remoteMac, (uint8_t *) &answer, sizeof(answer));
-    if (result == ESP_OK) {
-      Serial.println("Sent with success");
-    } else {
-      Serial.println("Error sending the data");
-    }
-  }
-  if (receivedNumber == 1) {
-    answer = 1;
-  }else{
-    answer = 0;
-  }
-}
-
-
-
+void onDataReceive(const uint8_t * mac, const uint8_t * data, int len);
 
 void setup()
 {
-    Serial.begin( 115200 ); /* prepare for possible serial debug */
+  Serial.begin( 115200 ); /* prepare for possible serial debug */
 
-    // Check if PSRAM is available
-    if (!psramFound()) {
-        Serial.println("PSRAM not found");
-        while (true); // Halt execution if PSRAM is not found
-    }
+    //Joystick setup
+  pinMode(xPinA, INPUT);
+  pinMode(yPinA, INPUT);
+  pinMode(xPinB, INPUT);
+  pinMode(yPinB, INPUT);
+  lastxA = analogRead(xPinA);
+  lastyA = analogRead(yPinA);
+  lastxB = analogRead(xPinB);
+  lastyB = analogRead(yPinB);
 
-    // Allocate memory from PSRAM
-    lv_mem_pool = ps_malloc(LV_MEM_SIZE);
-    if (lv_mem_pool == NULL) {
-        Serial.println("Failed to allocate memory from PSRAM");
-        while (true); // Halt execution if allocation fails
-    } else {
-        Serial.println("Memory allocated from PSRAM");
-    }
+  // Check if PSRAM is available
+  if (!psramFound()) {
+      Serial.println("PSRAM not found");
+      while (true); // Halt execution if PSRAM is not found
+  }
 
-    // Allocate screen buffers from PSRAM
-    buf1 = ps_malloc(LV_BUF_SIZE * sizeof(lv_color_t));
-    buf2 = ps_malloc(LV_BUF_SIZE * sizeof(lv_color_t));
-    if (buf1 == NULL || buf2 == NULL) {
-        Serial.println("Failed to allocate screen buffers from PSRAM");
-        while (true); // Halt execution if allocation fails
-    } else {
-        Serial.println("Screen buffers allocated from PSRAM");
-    }
+  // Allocate memory from PSRAM
+  lv_mem_pool = ps_malloc(LV_MEM_SIZE);
+  if (lv_mem_pool == NULL) {
+      Serial.println("Failed to allocate memory from PSRAM");
+      while (true); // Halt execution if allocation fails
+  } else {
+      Serial.println("Memory allocated from PSRAM");
+  }
+
+  // Allocate screen buffers from PSRAM
+  buf1 = ps_malloc(LV_BUF_SIZE * sizeof(lv_color_t));
+  buf2 = ps_malloc(LV_BUF_SIZE * sizeof(lv_color_t));
+  if (buf1 == NULL || buf2 == NULL) {
+      Serial.println("Failed to allocate screen buffers from PSRAM");
+      while (true); // Halt execution if allocation fails
+  } else {
+      Serial.println("Screen buffers allocated from PSRAM");
+  }
 
 
-    String LVGL_Arduino = "Hello Arduino! ";
-    LVGL_Arduino += String('V') + lv_version_major() + "." + lv_version_minor() + "." + lv_version_patch();
+  String LVGL_Arduino = "Hello Arduino! ";
+  LVGL_Arduino += String('V') + lv_version_major() + "." + lv_version_minor() + "." + lv_version_patch();
 
-    Serial.println( LVGL_Arduino );
-    Serial.println( "I am LVGL_Arduino" );
+  Serial.println( LVGL_Arduino );
+  Serial.println( "I am LVGL_Arduino" );
 
-    lv_init();
+  lv_init();
 
 #if LV_USE_LOG != 0
     lv_log_register_print_cb( my_print ); /* register print function for debugging */
@@ -269,16 +223,6 @@ void setup()
     Serial.println("Peer added");
   }
 
-  //Joystick setup
-  pinMode(xPinA, INPUT);
-  pinMode(yPinA, INPUT);
-  pinMode(xPinB, INPUT);
-  pinMode(yPinB, INPUT);
-  lastxA = analogRead(xPinA);
-  lastyA = analogRead(yPinA);
-  lastxB = analogRead(xPinB);
-  lastyB = analogRead(yPinB);
-
   Serial.println("Setup done");
 }
 
@@ -289,6 +233,7 @@ void loop()
   unsigned long currentTime = millis();
   if (currentTime - lastCheckTime >= checkInterval) 
   {
+    pauseESPNow();
     lastCheckTime = currentTime;
     dirA = readJoystick(xPinA, yPinA);
     lastxA = analogRead(xPinA);
@@ -296,6 +241,7 @@ void loop()
     dirB = readJoystick(xPinB, yPinB);
     lastxB = analogRead(xPinB);
     lastyB = analogRead(yPinB);
+    resumeESPNow();
   }
   //ESP-NOW
   if(millis() - lastPosCheck > 10000){
@@ -315,7 +261,7 @@ void loop()
   delay(5);
 }
 
-//Touch Calibration/////////////////////////////////////////////////////////////////////////////////////
+// TFT Screen /////////////////////////////////////////////////////////////////////////////////////
 void touch_calibrate()
 {
   uint16_t calData[5];
@@ -384,11 +330,95 @@ void touch_calibrate()
   }
 }
 
+void my_touchpad_read( lv_indev_drv_t * indev_driver, lv_indev_data_t * data )
+{
+    uint16_t touchX = 0, touchY = 0;
+
+    if( !tft.getTouch( &touchX, &touchY, 600 ) )
+    {
+        data->state = LV_INDEV_STATE_REL;
+    }
+    else
+    {
+        data->state = LV_INDEV_STATE_PR;
+
+        /*Set the coordinates*/
+        data->point.x = touchX;
+        data->point.y = touchY;
+
+        Serial.print( "Data x " );
+        Serial.println( touchX );
+
+        Serial.print( "Data y " );
+        Serial.println( touchY );
+        Serial.printf("posFLS: %d\n", posFLS);
+        Serial.printf("posFLT: %d\n", posFLT);
+        Serial.printf("posFLB: %d\n", posFLB);
+    }
+}
+
+void my_disp_flush( lv_disp_drv_t *disp, const lv_area_t *area, lv_color_t *color_p )
+{
+    uint32_t w = ( area->x2 - area->x1 + 1 );
+    uint32_t h = ( area->y2 - area->y1 + 1 );
+
+    tft.startWrite();
+    tft.setAddrWindow( area->x1, area->y1, w, h );
+    tft.pushColors( ( uint16_t * )&color_p->full, w * h, true );
+    tft.endWrite();
+
+    lv_disp_flush_ready( disp );
+}
+
 //ESP-NOW/////////////////////////////////////////////////////////////////////////////////////////////////////
 void readMacAdress(){
   uint8_t mac[6];
   esp_read_mac(mac, ESP_MAC_WIFI_STA);
   Serial.printf("MAC Address: %02x:%02x:%02x:%02x:%02x:%02x\n", mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]);
+}
+
+void onDataReceive(const uint8_t * mac, const uint8_t * data, int len) {
+  Serial.print("Received data from: ");
+  int receivedNumber;
+  memcpy(&receivedNumber, data, sizeof(receivedNumber));
+  Serial.println(receivedNumber);
+  if (receivedNumber == 3) {
+    esp_err_t result = esp_now_send(remoteMac, (uint8_t *) &answer, sizeof(answer));
+    if (result == ESP_OK) {
+      Serial.println("Sent with success");
+    } else {
+      Serial.println("Error sending the data");
+    }
+  }
+  if (receivedNumber == 1) {
+    answer = 1;
+  }else{
+    answer = 0;
+  }
+}
+
+void pauseESPNow() {
+  esp_now_deinit();
+  WiFi.disconnect();
+}
+
+void resumeESPNow() {
+  WiFi.mode(WIFI_STA);
+  if (esp_now_init() != ESP_OK) {
+    Serial.println("Error initializing ESP-NOW");
+    return;
+  }
+  esp_now_register_recv_cb(onDataReceive);
+  esp_now_peer_info_t peerInfo;
+  memset(&peerInfo, 0, sizeof(peerInfo));
+  memcpy(peerInfo.peer_addr, remoteMac, 6);
+  peerInfo.channel = 0;
+  peerInfo.encrypt = false;
+  if (esp_now_add_peer(&peerInfo) != ESP_OK) {
+    Serial.println("Failed to add peer");
+  } else {
+    Serial.println("Peer added");
+  }
 }
 
 //Event functions/////////////////////////////////////////////////////////////////////////////////////////////
