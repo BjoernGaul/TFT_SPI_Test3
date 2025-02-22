@@ -38,12 +38,6 @@ TFT_eSPI tft = TFT_eSPI(screenHeight, screenWidth); /* TFT instance */
 #define yPinB D6  // yPin Joystick B
 #define xPinB D7  // xPin Joystick B
 
-uint16_t lastxA = 0;
-uint16_t lastyA = 0;
-uint16_t lastxB = 0;
-uint16_t lastyB = 0;
-uint8_t dirB = 0;
-uint8_t dirA = 0;
 unsigned long lastCheckTime = 0;
 const unsigned long checkInterval = 100; // Interval in milliseconds
 
@@ -63,7 +57,7 @@ uint16_t posBLB = 0;
 uint16_t lastPosCheck = 0;
 static const uint16_t isStanding = 69;
 
-//Variables ESP-Now
+//Variables Communication
 const uint8_t sit = 0;
 const uint8_t stand = 1;
 const uint8_t crab = 2;
@@ -81,7 +75,6 @@ const uint8_t BLT = 41;
 const uint8_t BLB = 42;
 const uint8_t joyA = 101;
 const uint8_t joyB = 102;
-uint16_t dataSend[2] = {0, 0};
 
 
 #if LV_USE_LOG != 0
@@ -101,16 +94,8 @@ void my_touchpad_read( lv_indev_drv_t * indev_driver, lv_indev_data_t * data );
 
 //Funktions
 void touch_calibrate();
-void pauseESPNow();
-void resumeESPNow();
 
-//ESP-NOW
 
-int answer = 0;
-
-const uint8_t remoteMac[6] = {0x30, 0xC9, 0x22, 0xEC, 0xB9, 0x80}; //30:C9:22:FF:71:F4
-void readMacAdress();
-void onDataReceive(const uint8_t * mac, const uint8_t * data, int len);
 
 void setup()
 {
@@ -121,10 +106,6 @@ void setup()
   pinMode(yPinA, INPUT);
   pinMode(xPinB, INPUT);
   pinMode(yPinB, INPUT);
-  lastxA = analogRead(xPinA);
-  lastyA = analogRead(yPinA);
-  lastxB = analogRead(xPinB);
-  lastyB = analogRead(yPinB);
 
   // Check if PSRAM is available
   if (!psramFound()) {
@@ -201,58 +182,16 @@ void setup()
 
   Serial.println( " LVGL Setup done, starting ESP-Now" );
 
-  //ESP-NOW Setup
-  //readMacAdress();
-  WiFi.mode(WIFI_STA);
-  if (esp_now_init() != ESP_OK) {
-    Serial.println("Error initializing ESP-NOW");
-    return;
-  }
-  esp_now_register_recv_cb(onDataReceive);
-  esp_now_peer_info_t peerInfo;
-  memset(&peerInfo, 0, sizeof(peerInfo));
-  memcpy(peerInfo.peer_addr, remoteMac, 6);
-  peerInfo.channel = 0;
-  peerInfo.encrypt = false;
-  esp_err_t addPeerResult = esp_now_add_peer(&peerInfo);
-  if (esp_now_add_peer(&peerInfo) != ESP_OK) {
-    Serial.println("Failed to add peer");
-    Serial.println(addPeerResult);
-    return;
-  }else{
-    Serial.println("Peer added");
-  }
-
   Serial.println("Setup done");
 }
 
 //LOOP /////////////////////////////////////////////////////////////////////////////////////
 void loop()
 {
-  //Joystick
-  unsigned long currentTime = millis();
-  if (currentTime - lastCheckTime >= checkInterval) 
-  {
-    pauseESPNow();
-    lastCheckTime = currentTime;
-    dirA = readJoystick(xPinA, yPinA);
-    lastxA = analogRead(xPinA);
-    lastyA = analogRead(yPinA);
-    dirB = readJoystick(xPinB, yPinB);
-    lastxB = analogRead(xPinB);
-    lastyB = analogRead(yPinB);
-    resumeESPNow();
-  }
-  //ESP-NOW
-  if(millis() - lastPosCheck > 10000){
-    Serial.println("CheckisStanding");
-    lastPosCheck = millis();
-    esp_now_send(remoteMac, (uint8_t *) &isStanding, sizeof(isStanding));
-  }
-  if(answer == 0){
+  if(isStanding == 0){
     lv_obj_add_state(ui_LimbControl1, LV_STATE_DISABLED);
     lv_obj_add_state(ui_Walk, LV_STATE_DISABLED);
-  }else if(answer == 1){
+  }else if(isStanding == 1){
     lv_obj_clear_state(ui_LimbControl1, LV_STATE_DISABLED);
     lv_obj_clear_state(ui_Walk, LV_STATE_DISABLED);
   }
@@ -370,74 +309,22 @@ void my_disp_flush( lv_disp_drv_t *disp, const lv_area_t *area, lv_color_t *colo
     lv_disp_flush_ready( disp );
 }
 
-//ESP-NOW/////////////////////////////////////////////////////////////////////////////////////////////////////
-void readMacAdress(){
-  uint8_t mac[6];
-  esp_read_mac(mac, ESP_MAC_WIFI_STA);
-  Serial.printf("MAC Address: %02x:%02x:%02x:%02x:%02x:%02x\n", mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]);
-}
-
-void onDataReceive(const uint8_t * mac, const uint8_t * data, int len) {
-  Serial.print("Received data from: ");
-  int receivedNumber;
-  memcpy(&receivedNumber, data, sizeof(receivedNumber));
-  Serial.println(receivedNumber);
-  if (receivedNumber == 3) {
-    esp_err_t result = esp_now_send(remoteMac, (uint8_t *) &answer, sizeof(answer));
-    if (result == ESP_OK) {
-      Serial.println("Sent with success");
-    } else {
-      Serial.println("Error sending the data");
-    }
-  }
-  if (receivedNumber == 1) {
-    answer = 1;
-  }else{
-    answer = 0;
-  }
-}
-
-void pauseESPNow() {
-  esp_now_deinit();
-  WiFi.disconnect();
-}
-
-void resumeESPNow() {
-  WiFi.mode(WIFI_STA);
-  if (esp_now_init() != ESP_OK) {
-    Serial.println("Error initializing ESP-NOW");
-    return;
-  }
-  esp_now_register_recv_cb(onDataReceive);
-  esp_now_peer_info_t peerInfo;
-  memset(&peerInfo, 0, sizeof(peerInfo));
-  memcpy(peerInfo.peer_addr, remoteMac, 6);
-  peerInfo.channel = 0;
-  peerInfo.encrypt = false;
-  if (esp_now_add_peer(&peerInfo) != ESP_OK) {
-    Serial.println("Failed to add peer");
-  } else {
-    Serial.println("Peer added");
-  }
-}
-
 //Event functions/////////////////////////////////////////////////////////////////////////////////////////////
 
 void getPositionLegs(lv_event_t * e)
 {
-  esp_now_send(remoteMac, (uint8_t *) &isStanding, sizeof(isStanding));
+
 }
 
 //Positions/////////////////////////////////////////////////////////////////////////////////////////////////////
 void sendSit1(lv_event_t * e){
   Serial.println("Sit1");
-  esp_now_send(remoteMac, (uint8_t *) &sit, sizeof(answer));
+
 }
 
 void standSend1(lv_event_t * e){
   Serial.println("Stand1");
-  esp_now_send(remoteMac, (uint8_t *) &stand, sizeof(stand));
-  answer = 1;
+
 }
 
 void crabSend1(lv_event_t * e){
@@ -446,7 +333,7 @@ void crabSend1(lv_event_t * e){
 
 void resetPositionDog(lv_event_t * e){
   Serial.println("Reset");
-  esp_now_send(remoteMac, (uint8_t *) &stand, sizeof(stand));
+
 }
 
 
@@ -456,9 +343,7 @@ void flSideChangeVal(lv_event_t * e)
 {
   Serial.printf("posFLS: %d\n", lv_slider_get_value(e->target));
   posFLS = lv_slider_get_value(e->target);
-  dataSend[0] = FLS;
-  dataSend[1] = posFLS;
-  esp_now_send(remoteMac, (uint8_t *) &dataSend, sizeof(dataSend));
+
 
 }
 
@@ -466,18 +351,14 @@ void flTopChangeVal(lv_event_t * e)
 {
   Serial.printf("posFLT: %d\n", lv_slider_get_value(e->target));
   posFLT = lv_slider_get_value(e->target);
-  dataSend[0] = FLT;
-  dataSend[1] = posFLT;
-  esp_now_send(remoteMac, (uint8_t *) &dataSend, sizeof(dataSend));
+
 }
 
 void flBotChangeVal(lv_event_t * e)
 {
   Serial.printf("posFLB: %d\n", lv_slider_get_value(e->target));
   posFLB = lv_slider_get_value(e->target);
-  dataSend[0] = FLB;
-  dataSend[1] = posFLB;
-  esp_now_send(remoteMac, (uint8_t *) &dataSend, sizeof(dataSend));
+
 }
 
 //Front right leg /////////////////////////////////////////////////////////////////////////////////////////////
@@ -485,27 +366,21 @@ void frSideChangeVal(lv_event_t * e)
 {
   Serial.printf("posFRS: %d\n", lv_slider_get_value(e->target));
   posFRS = lv_slider_get_value(e->target);
-  dataSend[0] = FRS;
-  dataSend[1] = posFRS;
-  esp_now_send(remoteMac, (uint8_t *) &dataSend, sizeof(dataSend));
+
 }
 
 void frTopChangeVal(lv_event_t * e)
 {
   Serial.printf("posFRT: %d\n", lv_slider_get_value(e->target));
   posFRT = lv_slider_get_value(e->target);
-  dataSend[0] = FRT;
-  dataSend[1] = posFRT;
-  esp_now_send(remoteMac, (uint8_t *) &dataSend, sizeof(dataSend));
+
 }
 
 void frBotChangeVal(lv_event_t * e)
 {
   Serial.printf("posFRB: %d\n", lv_slider_get_value(e->target));
   posFRB = lv_slider_get_value(e->target);
-  dataSend[0] = FRB;
-  dataSend[1] = posFRB;
-  esp_now_send(remoteMac, (uint8_t *) &dataSend, sizeof(dataSend));
+
 }
 
 
@@ -515,27 +390,21 @@ void blSideChangeVal(lv_event_t * e)
 {
   Serial.printf("posBLS: %d\n", lv_slider_get_value(e->target));
   posBLS = lv_slider_get_value(e->target);
-  dataSend[0] = BLS;
-  dataSend[1] = posBLS;
-  esp_now_send(remoteMac, (uint8_t *) &dataSend, sizeof(dataSend));
+
 }
 
 void blTopChangeVal(lv_event_t * e)
 {
   Serial.printf("posBLT: %d\n", lv_slider_get_value(e->target));
   posBLT = lv_slider_get_value(e->target);
-  dataSend[0] = BLT;
-  dataSend[1] = posBLT;
-  esp_now_send(remoteMac, (uint8_t *) &dataSend, sizeof(dataSend));
+
 }
 
 void blBotChangeVal(lv_event_t * e)
 {
   Serial.printf("posBLB: %d\n", lv_slider_get_value(e->target));
   posBLB = lv_slider_get_value(e->target);
-  dataSend[0] = BLB;
-  dataSend[1] = posBLB;
-  esp_now_send(remoteMac, (uint8_t *) &dataSend, sizeof(dataSend));
+
 }
 
 
@@ -544,25 +413,19 @@ void brSideChangeVal(lv_event_t * e)
 {
   Serial.printf("posBRS: %d\n", lv_slider_get_value(e->target));
   posBRS = lv_slider_get_value(e->target);
-  dataSend[0] = BRS;
-  dataSend[1] = posBRS;
-  esp_now_send(remoteMac, (uint8_t *) &dataSend, sizeof(dataSend));
+
 }
 
 void brTopChangeVal(lv_event_t * e)
 {
   Serial.printf("posBRT: %d\n", lv_slider_get_value(e->target));
   posBRT = lv_slider_get_value(e->target);
-  dataSend[0] = BRT;
-  dataSend[1] = posBRT;
-  esp_now_send(remoteMac, (uint8_t *) &dataSend, sizeof(dataSend));
+
 }
 
 void brBotChangeVal(lv_event_t * e)
 {
   Serial.printf("posBRB: %d\n", lv_slider_get_value(e->target));
   posBRB = lv_slider_get_value(e->target);
-  dataSend[0] = BRB;
-  dataSend[1] = posBRB;
-  esp_now_send(remoteMac, (uint8_t *) &dataSend, sizeof(dataSend));
+
 }
