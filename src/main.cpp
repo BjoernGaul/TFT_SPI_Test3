@@ -1,8 +1,5 @@
 //Mac Adresse Remote: 30:C9:22:FF:71:F4
 
-#include <WiFi.h>
-#include <esp_now.h>
-#include <esp_wifi.h>
 #include "FS.h"
 #include <SPI.h>
 #include <TFT_eSPI.h>
@@ -10,6 +7,7 @@
 #include <lvgl.h>
 #include <ui.h>
 #include <funktions.h>
+#include <LoRa.h>
 
 
 /*Don't forget to set Sketchbook location in File/Preferences to the path of your UI project (the parent foder of this INO file)*/
@@ -23,23 +21,32 @@ static const uint16_t screenWidth  = 480;
 static const uint16_t screenHeight = 320;
 
 void* lv_mem_pool;
-#define LV_BUF_SIZE (screenWidth * screenHeight / 10)  // Define the size of the screen buffer
+#define LV_BUF_SIZE (screenWidth * screenHeight)  // Define the size of the screen buffer
 
 void* buf1;
 void* buf2;
 
 
 TFT_eSPI tft = TFT_eSPI(screenHeight, screenWidth); /* TFT instance */
+// SPIClass tftSPI = SPIClass(VSPI);
 
 //Joystick
 
-#define xPinA D3  // xPin Joystick A
-#define yPinA D5  // yPin Joystick A
-#define yPinB D6  // yPin Joystick B
-#define xPinB D7  // xPin Joystick B
+#define xPinRight A3  // xPin Joystick A
+#define yPinRight A2  // yPin Joystick A
+#define yPinLeft A0  // yPin Joystick B
+#define xPinLeft A1  // xPin Joystick B
+uint8_t joyLeft = 0;
+uint8_t joyRight = 0;
 
 unsigned long lastCheckTime = 0;
 const unsigned long checkInterval = 100; // Interval in milliseconds
+
+// LoRa
+#define loraDIO0 D3
+#define loraCS A4
+#define loraFrequency 433E6
+SPIClass SPILora = SPIClass(HSPI);
 
 //Variables
 uint16_t posFLS = 0;
@@ -55,7 +62,7 @@ uint16_t posBLS = 0;
 uint16_t posBLT = 0;
 uint16_t posBLB = 0;
 uint16_t lastPosCheck = 0;
-static const uint16_t isStanding = 69;
+
 
 //Variables Communication
 const uint8_t sit = 0;
@@ -73,8 +80,10 @@ const uint8_t BRB = 32;
 const uint8_t BLS = 40;
 const uint8_t BLT = 41;
 const uint8_t BLB = 42;
-const uint8_t joyA = 101;
-const uint8_t joyB = 102;
+const uint8_t isStanding = 69;
+const uint8_t gimmePosLegs = 250;
+const uint8_t reset = 255;
+int msgArray[2];
 
 
 #if LV_USE_LOG != 0
@@ -94,18 +103,50 @@ void my_touchpad_read( lv_indev_drv_t * indev_driver, lv_indev_data_t * data );
 
 //Funktions
 void touch_calibrate();
-
+void manageSend();
+bool is_screen_active(lv_obj_t *screen) { return lv_scr_act() == screen; }
 
 
 void setup()
 {
-  Serial.begin( 115200 ); /* prepare for possible serial debug */
+  Serial.begin( 9600 ); /* prepare for possible serial debug */
+  // Serial2.begin( 9600 ); //connection to second esp
 
     //Joystick setup
-  pinMode(xPinA, INPUT);
-  pinMode(yPinA, INPUT);
-  pinMode(xPinB, INPUT);
-  pinMode(yPinB, INPUT);
+  pinMode(xPinRight, INPUT);
+  pinMode(yPinRight, INPUT);
+  pinMode(xPinLeft, INPUT);
+  pinMode(yPinLeft, INPUT);
+  
+
+  
+  tft.begin();          /* TFT init */
+  tft.setRotation( 1 ); /* Landscape orientation, flipped */
+
+  touch_calibrate();
+  tft.fillScreen(TFT_BLACK);
+  tft.setCursor(20, 0);
+  tft.setTextFont(2);
+  tft.setTextSize(3);
+  tft.setTextColor(TFT_WHITE, TFT_BLACK);
+  tft.println("Starting...");
+
+  // //Lora Setup
+  delay(1000);
+  Serial.println("LoRa Start");
+  LoRa.setSPI(SPILora);
+  LoRa.setPins( loraCS , -1 , loraDIO0 );
+  delay(500);
+  // pinMode(NSS, OUTPUT);
+  // digitalWrite(NSS, HIGH); // Deactivate LoRa CS  
+  if (!LoRa.begin(loraFrequency)) {
+    Serial.println("LoRa init failed. Check your connections.");
+    while (true);    
+  }
+  LoRa.onReceive(onReceive);
+  LoRa.onTxDone(onTxDone);
+  LoRa_rxMode();
+  Serial.println("LoRa init succeeded.");
 
   // Check if PSRAM is available
   if (!psramFound()) {
@@ -132,7 +173,6 @@ void setup()
       Serial.println("Screen buffers allocated from PSRAM");
   }
 
-
   String LVGL_Arduino = "Hello Arduino! ";
   LVGL_Arduino += String('V') + lv_version_major() + "." + lv_version_minor() + "." + lv_version_patch();
 
@@ -144,17 +184,6 @@ void setup()
 #if LV_USE_LOG != 0
     lv_log_register_print_cb( my_print ); /* register print function for debugging */
 #endif
-
-  tft.begin();          /* TFT init */
-  tft.setRotation( 1 ); /* Landscape orientation, flipped */
-
-  touch_calibrate();
-  tft.fillScreen(TFT_BLACK);
-  tft.setCursor(20, 0);
-  tft.setTextFont(2);
-  tft.setTextSize(3);
-  tft.setTextColor(TFT_WHITE, TFT_BLACK);
-  tft.println("Starting...");
 
   /*Initialize the display buffer*/
   static lv_disp_draw_buf_t draw_buf;
@@ -182,22 +211,39 @@ void setup()
 
   Serial.println( " LVGL Setup done, starting ESP-Now" );
 
+
+
   Serial.println("Setup done");
 }
 
 //LOOP /////////////////////////////////////////////////////////////////////////////////////
 void loop()
 {
-  if(isStanding == 0){
-    lv_obj_add_state(ui_LimbControl1, LV_STATE_DISABLED);
-    lv_obj_add_state(ui_Walk, LV_STATE_DISABLED);
-  }else if(isStanding == 1){
-    lv_obj_clear_state(ui_LimbControl1, LV_STATE_DISABLED);
-    lv_obj_clear_state(ui_Walk, LV_STATE_DISABLED);
+  if(is_screen_active(ui_WalkScreen))
+  {
+    if(runEvery(500))
+    {
+      // Serial.println("Read JoystickRight\n");
+      // Serial.printf("xPin: %d, yPin: %d", analogRead(xPinRight), analogRead(yPinRight));
+      joyLeft = readJoystick(xPinRight,yPinRight);
+      joyLeft += 10;
+      // Serial.println("Read JoystickLeft\n");
+      // Serial.printf("xPin: %d, yPin: %d", analogRead(xPinLeft), analogRead(yPinLeft));
+      joyRight = readJoystick(xPinLeft,yPinLeft);
+      joyRight += 20;
+
+      manageSend(joyLeft, joyRight);
+    }
   }
+  // if(isStanding == 0){
+  //   lv_obj_add_state(ui_LimbControl1, LV_STATE_DISABLED);
+  //   lv_obj_add_state(ui_Walk, LV_STATE_DISABLED);
+  // }else if(isStanding == 1){
+  //   lv_obj_clear_state(ui_LimbControl1, LV_STATE_DISABLED);
+  //   lv_obj_clear_state(ui_Walk, LV_STATE_DISABLED);
+  // }
   //LVGL
   lv_timer_handler(); /* let the GUI do its work */
-  delay(5);
 }
 
 // TFT Screen /////////////////////////////////////////////////////////////////////////////////////
@@ -285,14 +331,14 @@ void my_touchpad_read( lv_indev_drv_t * indev_driver, lv_indev_data_t * data )
         data->point.x = touchX;
         data->point.y = touchY;
 
-        Serial.print( "Data x " );
-        Serial.println( touchX );
+        // Serial.print( "Data x " );
+        // Serial.println( touchX );
 
-        Serial.print( "Data y " );
-        Serial.println( touchY );
-        Serial.printf("posFLS: %d\n", posFLS);
-        Serial.printf("posFLT: %d\n", posFLT);
-        Serial.printf("posFLB: %d\n", posFLB);
+        // Serial.print( "Data y " );
+        // Serial.println( touchY );
+        // Serial.printf("posFLS: %d\n", posFLS);
+        // Serial.printf("posFLT: %d\n", posFLT);
+        // Serial.printf("posFLB: %d\n", posFLB);
     }
 }
 
@@ -319,21 +365,22 @@ void getPositionLegs(lv_event_t * e)
 //Positions/////////////////////////////////////////////////////////////////////////////////////////////////////
 void sendSit1(lv_event_t * e){
   Serial.println("Sit1");
-
+  LoRa_sendMessage(String(sit));
 }
 
 void standSend1(lv_event_t * e){
   Serial.println("Stand1");
-
+  LoRa_sendMessage(String(stand));
 }
 
 void crabSend1(lv_event_t * e){
   Serial.println("Crab1");
+  LoRa_sendMessage(String(crab));
 }
 
 void resetPositionDog(lv_event_t * e){
   Serial.println("Reset");
-
+  LoRa_sendMessage(String(reset));
 }
 
 
@@ -343,22 +390,27 @@ void flSideChangeVal(lv_event_t * e)
 {
   Serial.printf("posFLS: %d\n", lv_slider_get_value(e->target));
   posFLS = lv_slider_get_value(e->target);
-
-
+  msgArray[0] = FLS;
+  msgArray[1] = posFLS;
+  LoRa_sendMessage(intArraytoString(msgArray));
 }
 
 void flTopChangeVal(lv_event_t * e)
 {
   Serial.printf("posFLT: %d\n", lv_slider_get_value(e->target));
   posFLT = lv_slider_get_value(e->target);
-
+  msgArray[0] = FLT;
+  msgArray[1] = posFLT;
+  LoRa_sendMessage(intArraytoString(msgArray));
 }
 
 void flBotChangeVal(lv_event_t * e)
 {
   Serial.printf("posFLB: %d\n", lv_slider_get_value(e->target));
   posFLB = lv_slider_get_value(e->target);
-
+  msgArray[0] = FLB;
+  msgArray[1] = posFLB;
+  LoRa_sendMessage(intArraytoString(msgArray));
 }
 
 //Front right leg /////////////////////////////////////////////////////////////////////////////////////////////
@@ -366,21 +418,27 @@ void frSideChangeVal(lv_event_t * e)
 {
   Serial.printf("posFRS: %d\n", lv_slider_get_value(e->target));
   posFRS = lv_slider_get_value(e->target);
-
+  msgArray[0] = FLB;
+  msgArray[1] = posFLB;
+  LoRa_sendMessage(intArraytoString(msgArray));
 }
 
 void frTopChangeVal(lv_event_t * e)
 {
   Serial.printf("posFRT: %d\n", lv_slider_get_value(e->target));
   posFRT = lv_slider_get_value(e->target);
-
+  msgArray[0] = FRT;
+  msgArray[1] = posFRT;
+  LoRa_sendMessage(intArraytoString(msgArray));
 }
 
 void frBotChangeVal(lv_event_t * e)
 {
   Serial.printf("posFRB: %d\n", lv_slider_get_value(e->target));
   posFRB = lv_slider_get_value(e->target);
-
+  msgArray[0] = FRB;
+  msgArray[1] = posFRB;
+  LoRa_sendMessage(intArraytoString(msgArray));
 }
 
 
@@ -390,21 +448,27 @@ void blSideChangeVal(lv_event_t * e)
 {
   Serial.printf("posBLS: %d\n", lv_slider_get_value(e->target));
   posBLS = lv_slider_get_value(e->target);
-
+  msgArray[0] = BLS;
+  msgArray[1] = posBLS;
+  LoRa_sendMessage(intArraytoString(msgArray));
 }
 
 void blTopChangeVal(lv_event_t * e)
 {
   Serial.printf("posBLT: %d\n", lv_slider_get_value(e->target));
   posBLT = lv_slider_get_value(e->target);
-
+  msgArray[0] = BLT;
+  msgArray[1] = posBLT;
+  LoRa_sendMessage(intArraytoString(msgArray));
 }
 
 void blBotChangeVal(lv_event_t * e)
 {
   Serial.printf("posBLB: %d\n", lv_slider_get_value(e->target));
   posBLB = lv_slider_get_value(e->target);
-
+  msgArray[0] = BLB;
+  msgArray[1] = posBLB;
+  LoRa_sendMessage(intArraytoString(msgArray));
 }
 
 
@@ -413,19 +477,26 @@ void brSideChangeVal(lv_event_t * e)
 {
   Serial.printf("posBRS: %d\n", lv_slider_get_value(e->target));
   posBRS = lv_slider_get_value(e->target);
-
+  msgArray[0] = BRS;
+  msgArray[1] = posBRS;
+  LoRa_sendMessage(intArraytoString(msgArray));
 }
 
 void brTopChangeVal(lv_event_t * e)
 {
   Serial.printf("posBRT: %d\n", lv_slider_get_value(e->target));
   posBRT = lv_slider_get_value(e->target);
-
+  msgArray[0] = BRT;
+  msgArray[1] = posBRT;
+  LoRa_sendMessage(intArraytoString(msgArray));
 }
 
 void brBotChangeVal(lv_event_t * e)
 {
   Serial.printf("posBRB: %d\n", lv_slider_get_value(e->target));
   posBRB = lv_slider_get_value(e->target);
-
+  msgArray[0] = BRB;
+  msgArray[1] = posBRB;
+  LoRa_sendMessage(intArraytoString(msgArray));
 }
+
