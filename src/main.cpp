@@ -1,4 +1,5 @@
 //Mac Adresse Remote: 30:C9:22:EC:BE:AC
+//Corruption is from hardware
 
 #include <WiFi.h>
 #include <esp_now.h>
