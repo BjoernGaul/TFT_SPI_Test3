@@ -96,10 +96,39 @@ void my_print(const char * buf)
 #endif
 
 /* Display flushing */
-void my_disp_flush( lv_disp_drv_t *disp, const lv_area_t *area, lv_color_t *color_p );
+void my_disp_flush( lv_disp_drv_t *disp, const lv_area_t *area, lv_color_t *color_p )
+{
+    uint32_t w = ( area->x2 - area->x1 + 1 );
+    uint32_t h = ( area->y2 - area->y1 + 1 );
+
+    tft.startWrite();
+    tft.setAddrWindow( area->x1, area->y1, w, h );
+    tft.pushColors( ( uint16_t * )&color_p->full, w * h, true );
+    tft.endWrite();
+
+    lv_disp_flush_ready( disp );
+}
 
 /*Read the touchpad*/
-void my_touchpad_read( lv_indev_drv_t * indev_driver, lv_indev_data_t * data );
+void my_touchpad_read( lv_indev_drv_t * indev_driver, lv_indev_data_t * data )
+{
+    uint16_t touchX = 0, touchY = 0;
+
+    if( !tft.getTouch( &touchX, &touchY, 600 ) )
+    {
+        data->state = LV_INDEV_STATE_REL;
+    }
+    else
+    {
+        data->state = LV_INDEV_STATE_PR;
+
+        /*Set the coordinates*/
+        data->point.x = touchX;
+        data->point.y = touchY;
+
+
+    }
+}
 
 //Funktions
 void touch_calibrate();
@@ -313,46 +342,6 @@ void touch_calibrate()
       f.close();
     }
   }
-}
-
-void my_touchpad_read( lv_indev_drv_t * indev_driver, lv_indev_data_t * data )
-{
-    uint16_t touchX = 0, touchY = 0;
-
-    if( !tft.getTouch( &touchX, &touchY, 600 ) )
-    {
-        data->state = LV_INDEV_STATE_REL;
-    }
-    else
-    {
-        data->state = LV_INDEV_STATE_PR;
-
-        /*Set the coordinates*/
-        data->point.x = touchX;
-        data->point.y = touchY;
-
-        // Serial.print( "Data x " );
-        // Serial.println( touchX );
-
-        // Serial.print( "Data y " );
-        // Serial.println( touchY );
-        // Serial.printf("posFLS: %d\n", posFLS);
-        // Serial.printf("posFLT: %d\n", posFLT);
-        // Serial.printf("posFLB: %d\n", posFLB);
-    }
-}
-
-void my_disp_flush( lv_disp_drv_t *disp, const lv_area_t *area, lv_color_t *color_p )
-{
-    uint32_t w = ( area->x2 - area->x1 + 1 );
-    uint32_t h = ( area->y2 - area->y1 + 1 );
-
-    tft.startWrite();
-    tft.setAddrWindow( area->x1, area->y1, w, h );
-    tft.pushColors( ( uint16_t * )&color_p->full, w * h, true );
-    tft.endWrite();
-
-    lv_disp_flush_ready( disp );
 }
 
 //Event functions/////////////////////////////////////////////////////////////////////////////////////////////
