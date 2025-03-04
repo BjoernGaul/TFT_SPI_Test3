@@ -10,6 +10,8 @@ void ui_WalkScreen_screen_init(void)
     ui_WalkScreen = lv_obj_create(NULL);
     lv_obj_clear_flag(ui_WalkScreen, LV_OBJ_FLAG_SCROLLABLE);      /// Flags
 
+    create_battery_status(ui_WalkScreen);
+    
     ui_DistanceBar = lv_bar_create(ui_WalkScreen);
     lv_bar_set_value(ui_DistanceBar, 25, LV_ANIM_OFF);
     lv_bar_set_start_value(ui_DistanceBar, 0, LV_ANIM_OFF);

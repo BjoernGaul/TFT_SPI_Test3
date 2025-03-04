@@ -10,6 +10,8 @@ void ui_LCScreen_screen_init(void)
     ui_LCScreen = lv_obj_create(NULL);
     lv_obj_clear_flag(ui_LCScreen, LV_OBJ_FLAG_SCROLLABLE);      /// Flags
 
+    create_battery_status(ui_LCScreen);
+
     ui_Button2 = lv_btn_create(ui_LCScreen);
     lv_obj_set_width(ui_Button2, 230);
     lv_obj_set_height(ui_Button2, 150);

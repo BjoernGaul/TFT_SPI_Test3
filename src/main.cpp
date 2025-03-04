@@ -10,7 +10,13 @@
 #include <LoRa.h>
 
 
-/*Don't forget to set Sketchbook location in File/Preferences to the path of your UI project (the parent foder of this INO file)*/
+//Battery
+#define VBAT_PIN 34
+
+//runEvery lastruntimes
+unsigned long lastRunTimeBattery = 0;
+unsigned long lastRunTimeController = 0;
+unsigned long nextLvTimerRun = 0;
 
 //Set REPEAT_CAL to false to stop calibrating again
 static const String CALIBRATION_FILE =  "/calibrationData";
@@ -32,8 +38,8 @@ TFT_eSPI tft = TFT_eSPI(screenHeight, screenWidth); /* TFT instance */
 
 //Joystick
 
-#define xPinRight A3  // xPin Joystick A
-#define yPinRight A2  // yPin Joystick A
+#define xPinRight A4  // xPin Joystick A
+#define yPinRight A3  // yPin Joystick A
 #define yPinLeft A0  // yPin Joystick B
 #define xPinLeft A1  // xPin Joystick B
 uint8_t joyLeft = 0;
@@ -44,7 +50,7 @@ const unsigned long checkInterval = 100; // Interval in milliseconds
 
 // LoRa
 #define loraDIO0 D3
-#define loraCS A4
+#define loraCS 21
 #define loraFrequency 433E6
 SPIClass SPILora = SPIClass(HSPI);
 
@@ -117,6 +123,7 @@ void setup()
   pinMode(yPinRight, INPUT);
   pinMode(xPinLeft, INPUT);
   pinMode(yPinLeft, INPUT);
+  pinMode(VBAT_PIN, INPUT_PULLDOWN);
   
 
   
@@ -165,8 +172,8 @@ void setup()
 
   // Allocate screen buffers from PSRAM
   buf1 = ps_malloc(LV_BUF_SIZE * sizeof(lv_color_t));
-  buf2 = ps_malloc(LV_BUF_SIZE * sizeof(lv_color_t));
-  if (buf1 == NULL || buf2 == NULL) {
+  //buf2 = ps_malloc(LV_BUF_SIZE * sizeof(lv_color_t));
+  if (buf1 == NULL ) { // || buf2 == NULL
       Serial.println("Failed to allocate screen buffers from PSRAM");
       while (true); // Halt execution if allocation fails
   } else {
@@ -187,7 +194,7 @@ void setup()
 
   /*Initialize the display buffer*/
   static lv_disp_draw_buf_t draw_buf;
-  lv_disp_draw_buf_init( &draw_buf, buf1, buf2, screenWidth * screenHeight / 10 );
+  lv_disp_draw_buf_init( &draw_buf, buf1, NULL, LV_BUF_SIZE);
 
   /*Initialize the display*/
   static lv_disp_drv_t disp_drv;
@@ -219,9 +226,37 @@ void setup()
 //LOOP /////////////////////////////////////////////////////////////////////////////////////
 void loop()
 {
+  unsigned long currentTime = millis();
+
+  if(runEvery(10000, lastRunTimeBattery))
+  {
+    int rawValue = analogRead(VBAT_PIN);  // Read the raw ADC value
+    Serial.println(rawValue);
+
+    // Convert the raw ADC value to the actual battery voltage
+    float voltage = rawValue * (3.3 / 4095.0) * 2;  // Scale to the actual battery voltage
+
+    Serial.print("Battery Voltage: ");
+    Serial.print(voltage);
+    Serial.println(" V");
+
+    // Check for overdischarge
+    if (voltage < 3.0) {
+        Serial.println("Warning: Battery voltage is below the overdischarge detection voltage!");
+        // Take appropriate action, such as shutting down the system or alerting the user
+    }
+    // Calculate the battery percentage
+    int percentage = (voltage - 3.0) / (4.2 - 3.0) * 100;
+    if (percentage > 100) percentage = 100;
+    if (percentage < 0) percentage = 0;
+    Serial.println(percentage);
+    update_battery_status(percentage);
+
+  }
+
   if(is_screen_active(ui_WalkScreen))
   {
-    if(runEvery(500))
+    if(runEvery(500, lastRunTimeController))
     {
       // Serial.println("Read JoystickRight\n");
       // Serial.printf("xPin: %d, yPin: %d", analogRead(xPinRight), analogRead(yPinRight));
@@ -243,7 +278,11 @@ void loop()
   //   lv_obj_clear_state(ui_Walk, LV_STATE_DISABLED);
   // }
   //LVGL
-  lv_timer_handler(); /* let the GUI do its work */
+    // Run LVGL timer handler only when needed
+    if (currentTime >= nextLvTimerRun) {
+      nextLvTimerRun = currentTime + lv_timer_handler();
+  }
+  delay(5);
 }
 
 // TFT Screen /////////////////////////////////////////////////////////////////////////////////////

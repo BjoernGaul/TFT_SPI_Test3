@@ -4,18 +4,19 @@
 
 uint16_t posStep = 5;
 
-String intArraytoString(int intarray[2])
-{
-  int intArray[] = {1, 2, 3, 4, 5};
+String intArraytoString(int intArray[]) {
   String str = "";
+  int arraySize = 2;
 
-  for (int i = 0; i < sizeof(intArray) / sizeof(intArray[0]); i++) {
+  for (int i = 0; i < arraySize; i++)
+  {
       str += String(intArray[i]);
-      if (i < sizeof(intArray) / sizeof(intArray[0]) - 1) {
+      if (i < arraySize - 1) 
+      {
           str += ", "; // Add a separator
       }
   }
-  //Serial.println(str);
+  Serial.println(str);
   return str;
 }
 
@@ -66,7 +67,7 @@ int readJoystick(int xPin,int yPin)
   }
 }
 
-boolean runEvery(unsigned long interval)
+boolean runEvery(unsigned long interval, unsigned long &lastRunTime)
 {
   static unsigned long previousMillis = 0;
   unsigned long currentMillis = millis();
@@ -105,7 +106,7 @@ void LoRa_sendMessage(String message) {
 
 void sendJoystick(String joypos){
 
-  Serial.println(joypos);
+  //Serial.println(joypos);
 
   LoRa_sendMessage(joypos);
 }
@@ -133,22 +134,20 @@ void manageSend(uint8_t joyLeft, uint8_t joyRight)
   static uint8_t taskRight = 0;
   if(!taskLeft)
   {
-    msgArray[0] = 100;
-    msgArray[1] = joyLeft;
+    int msgArray[2] = {100, joyRight};
     sendJoystick(intArraytoString(msgArray));
-    taskLeft = joyLeft;
-  }else if(taskLeft != joyLeft)
+    taskLeft = joyRight;
+  }else if(taskLeft != joyRight)
   {
     taskLeft = 0;
   }
   
   if(!taskRight)
   {
-    msgArray[0] = 101;
-    msgArray[1] = joyRight;
+    int msgArray[2] = {101, joyLeft};
     sendJoystick(intArraytoString(msgArray));
-    taskRight = joyRight;
-  }else if(taskRight != joyRight)
+    taskRight = joyLeft;
+  }else if(taskRight != joyLeft)
   {
     taskRight = 0;
   }

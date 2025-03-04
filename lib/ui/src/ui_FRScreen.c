@@ -10,12 +10,14 @@ void ui_FRScreen_screen_init(void)
     ui_FRScreen = lv_obj_create(NULL);
     lv_obj_clear_flag(ui_FRScreen, LV_OBJ_FLAG_SCROLLABLE);      /// Flags
 
+    create_battery_status(ui_FRScreen);
+
     ui_Button12 = lv_btn_create(ui_FRScreen);
     lv_obj_set_width(ui_Button12, 100);
     lv_obj_set_height(ui_Button12, 50);
     lv_obj_set_x(ui_Button12, 0);
     lv_obj_set_y(ui_Button12, -10);
-    lv_obj_set_align(ui_Button12, LV_ALIGN_TOP_RIGHT);
+    lv_obj_set_align(ui_Button12, LV_ALIGN_TOP_MID);
     lv_obj_add_flag(ui_Button12, LV_OBJ_FLAG_SCROLL_ON_FOCUS);     /// Flags
     lv_obj_clear_flag(ui_Button12, LV_OBJ_FLAG_SCROLLABLE);      /// Flags
     lv_obj_set_style_bg_color(ui_Button12, lv_color_hex(0x7E0000), LV_PART_MAIN | LV_STATE_DEFAULT);
@@ -24,7 +26,7 @@ void ui_FRScreen_screen_init(void)
     ui_Label21 = lv_label_create(ui_Button12);
     lv_obj_set_width(ui_Label21, LV_SIZE_CONTENT);   /// 1
     lv_obj_set_height(ui_Label21, LV_SIZE_CONTENT);    /// 1
-    lv_obj_set_align(ui_Label21, LV_ALIGN_CENTER);
+    lv_obj_set_align(ui_Label21, LV_ALIGN_TOP_MID);
     lv_label_set_text(ui_Label21, "Back");
 
     ui_FLLabel2 = lv_label_create(ui_FRScreen);

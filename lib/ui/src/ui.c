@@ -5,9 +5,70 @@
 
 #include "ui.h"
 #include "ui_helpers.h"
+#include <stdio.h>
+#include <Arduino.h>
 
 ///////////////////// VARIABLES ////////////////////
 
+//Battery
+
+lv_obj_t *ui_BatteryIcon;
+lv_obj_t *ui_BatteryLabel;
+
+void create_battery_status(lv_obj_t *parent) {
+    // Create the battery icon
+    ui_BatteryIcon = lv_obj_create(parent);
+    lv_obj_set_width(ui_BatteryIcon, 40);
+    lv_obj_set_height(ui_BatteryIcon, 20);
+    lv_obj_set_x(ui_BatteryIcon, 0);
+    lv_obj_set_y(ui_BatteryIcon, 0);
+    lv_obj_set_align(ui_BatteryIcon, LV_ALIGN_TOP_RIGHT);
+    lv_obj_set_style_bg_color(ui_BatteryIcon, lv_color_hex(0x00FF00), LV_PART_MAIN | LV_STATE_DEFAULT);
+    lv_obj_set_style_bg_opa(ui_BatteryIcon, 255, LV_PART_MAIN | LV_STATE_DEFAULT);
+
+    // Create the battery percentage label
+    ui_BatteryLabel = lv_label_create(parent);
+    lv_obj_set_width(ui_BatteryLabel, LV_SIZE_CONTENT);   /// 1
+    lv_obj_set_height(ui_BatteryLabel, LV_SIZE_CONTENT);    /// 1
+    lv_obj_set_x(ui_BatteryLabel, -10);
+    lv_obj_set_y(ui_BatteryLabel, 2);
+    lv_obj_set_align(ui_BatteryLabel, LV_ALIGN_TOP_RIGHT);
+    lv_label_set_text(ui_BatteryLabel, "100");
+    lv_obj_set_style_text_color(ui_BatteryLabel, lv_color_hex(0x000000), LV_PART_MAIN | LV_STATE_DEFAULT);
+    lv_obj_set_style_text_opa(ui_BatteryLabel, 255, LV_PART_MAIN | LV_STATE_DEFAULT);
+}
+
+void delete_battery_status() {
+    if (ui_BatteryIcon != NULL) {
+        lv_obj_del(ui_BatteryIcon);
+        ui_BatteryIcon = NULL;
+    }
+    if (ui_BatteryLabel != NULL) {
+        lv_obj_del(ui_BatteryLabel);
+        ui_BatteryLabel = NULL;
+    }
+}
+
+void update_battery_status(int percentage) {
+    if (ui_BatteryLabel == NULL || ui_BatteryIcon == NULL) {
+        return;
+    }
+    // Update the battery label with the current percentage
+    char buffer[10];
+    snprintf(buffer, sizeof(buffer), "%d", percentage);
+    lv_label_set_text(ui_BatteryLabel, buffer);
+
+    // Update the battery icon color based on the percentage
+    if (percentage > 75) {
+        lv_obj_set_style_bg_color(ui_BatteryIcon, lv_color_hex(0x00FF00), LV_PART_MAIN | LV_STATE_DEFAULT); // Green
+    } else if (percentage > 50) {
+        lv_obj_set_style_bg_color(ui_BatteryIcon, lv_color_hex(0xFFFF00), LV_PART_MAIN | LV_STATE_DEFAULT); // Yellow
+    } else if (percentage > 25) {
+        lv_obj_set_style_bg_color(ui_BatteryIcon, lv_color_hex(0xFFA500), LV_PART_MAIN | LV_STATE_DEFAULT); // Orange
+    } else {
+        lv_obj_set_style_bg_color(ui_BatteryIcon, lv_color_hex(0xFF0000), LV_PART_MAIN | LV_STATE_DEFAULT); // Red
+    }
+}
 
 // SCREEN: ui_HomeScreen
 void ui_HomeScreen_screen_init(void);
@@ -177,6 +238,7 @@ void ui_event_LimbControl1(lv_event_t * e)
     lv_event_code_t event_code = lv_event_get_code(e);
 
     if(event_code == LV_EVENT_CLICKED) {
+        delete_battery_status();
         _ui_screen_change(&ui_LCScreen, LV_SCR_LOAD_ANIM_NONE, 500, 0, &ui_LCScreen_screen_init);
     }
     if(event_code == LV_EVENT_CLICKED) {
@@ -189,6 +251,7 @@ void ui_event_Walk(lv_event_t * e)
     lv_event_code_t event_code = lv_event_get_code(e);
 
     if(event_code == LV_EVENT_CLICKED) {
+        delete_battery_status();
         _ui_screen_change(&ui_WalkScreen, LV_SCR_LOAD_ANIM_NONE, 500, 0, &ui_WalkScreen_screen_init);
     }
     if(event_code == LV_EVENT_CLICKED) {
@@ -228,6 +291,7 @@ void ui_event_Button2(lv_event_t * e)
     lv_event_code_t event_code = lv_event_get_code(e);
 
     if(event_code == LV_EVENT_CLICKED) {
+        delete_battery_status();
         _ui_screen_change(&ui_FLScreen, LV_SCR_LOAD_ANIM_FADE_ON, 500, 0, &ui_FLScreen_screen_init);
     }
 }
@@ -237,6 +301,7 @@ void ui_event_Button1(lv_event_t * e)
     lv_event_code_t event_code = lv_event_get_code(e);
 
     if(event_code == LV_EVENT_CLICKED) {
+        delete_battery_status();
         _ui_screen_change(&ui_FRScreen, LV_SCR_LOAD_ANIM_FADE_ON, 500, 0, &ui_FRScreen_screen_init);
     }
 }
@@ -246,6 +311,7 @@ void ui_event_Button5(lv_event_t * e)
     lv_event_code_t event_code = lv_event_get_code(e);
 
     if(event_code == LV_EVENT_CLICKED) {
+        delete_battery_status();
         _ui_screen_change(&ui_BLScreen, LV_SCR_LOAD_ANIM_FADE_ON, 500, 0, &ui_BLScreen_screen_init);
     }
 }
@@ -255,6 +321,7 @@ void ui_event_Button6(lv_event_t * e)
     lv_event_code_t event_code = lv_event_get_code(e);
 
     if(event_code == LV_EVENT_CLICKED) {
+        delete_battery_status();
         _ui_screen_change(&ui_BRScreen, LV_SCR_LOAD_ANIM_FADE_ON, 500, 0, &ui_BRScreen_screen_init);
     }
 }
@@ -264,6 +331,7 @@ void ui_event_HomeButton(lv_event_t * e)
     lv_event_code_t event_code = lv_event_get_code(e);
 
     if(event_code == LV_EVENT_CLICKED) {
+        delete_battery_status();
         _ui_screen_change(&ui_HomeScreen, LV_SCR_LOAD_ANIM_NONE, 500, 0, &ui_HomeScreen_screen_init);
     }
     if(event_code == LV_EVENT_CLICKED) {
@@ -276,6 +344,7 @@ void ui_event_HomeButton2(lv_event_t * e)
     lv_event_code_t event_code = lv_event_get_code(e);
 
     if(event_code == LV_EVENT_CLICKED) {
+        delete_battery_status();
         _ui_screen_change(&ui_HomeScreen, LV_SCR_LOAD_ANIM_NONE, 500, 0, &ui_HomeScreen_screen_init);
     }
 }

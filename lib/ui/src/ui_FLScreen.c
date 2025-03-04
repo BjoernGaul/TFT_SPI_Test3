@@ -10,6 +10,8 @@ void ui_FLScreen_screen_init(void)
     ui_FLScreen = lv_obj_create(NULL);
     lv_obj_clear_flag(ui_FLScreen, LV_OBJ_FLAG_SCROLLABLE);      /// Flags
 
+    create_battery_status(ui_FLScreen);
+
     ui_FLLabel5 = lv_label_create(ui_FLScreen);
     lv_obj_set_width(ui_FLLabel5, LV_SIZE_CONTENT);   /// 1
     lv_obj_set_height(ui_FLLabel5, LV_SIZE_CONTENT);    /// 1
@@ -114,7 +116,7 @@ void ui_FLScreen_screen_init(void)
     lv_obj_set_height(ui_backButton, 50);
     lv_obj_set_x(ui_backButton, 0);
     lv_obj_set_y(ui_backButton, -10);
-    lv_obj_set_align(ui_backButton, LV_ALIGN_TOP_RIGHT);
+    lv_obj_set_align(ui_backButton, LV_ALIGN_TOP_MID);
     lv_obj_add_flag(ui_backButton, LV_OBJ_FLAG_SCROLL_ON_FOCUS);     /// Flags
     lv_obj_clear_flag(ui_backButton, LV_OBJ_FLAG_SCROLLABLE);      /// Flags
     lv_obj_set_style_bg_color(ui_backButton, lv_color_hex(0x7E0000), LV_PART_MAIN | LV_STATE_DEFAULT);
@@ -123,7 +125,7 @@ void ui_FLScreen_screen_init(void)
     ui_Label18 = lv_label_create(ui_backButton);
     lv_obj_set_width(ui_Label18, LV_SIZE_CONTENT);   /// 1
     lv_obj_set_height(ui_Label18, LV_SIZE_CONTENT);    /// 1
-    lv_obj_set_align(ui_Label18, LV_ALIGN_CENTER);
+    lv_obj_set_align(ui_Label18, LV_ALIGN_TOP_MID);
     lv_label_set_text(ui_Label18, "Back");
 
     lv_obj_add_event_cb(ui_flSideSlider, ui_event_flSideSlider, LV_EVENT_ALL, NULL);

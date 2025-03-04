@@ -27,6 +27,11 @@ extern "C" {
 #include "ui_comp_hook.h"
 #include "ui_events.h"
 
+//Battery
+void create_battery_status(lv_obj_t *parent);
+void update_battery_status(int percentage);
+void delete_battery_status();
+
 // SCREEN: ui_HomeScreen
 void ui_HomeScreen_screen_init(void);
 extern lv_obj_t * ui_HomeScreen;

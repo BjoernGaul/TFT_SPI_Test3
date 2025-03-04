@@ -10,6 +10,8 @@ void ui_HomeScreen_screen_init(void)
     ui_HomeScreen = lv_obj_create(NULL);
     lv_obj_clear_flag(ui_HomeScreen, LV_OBJ_FLAG_SCROLLABLE);      /// Flags
 
+    create_battery_status(ui_HomeScreen);
+    
     ui_LimbControl1 = lv_btn_create(ui_HomeScreen);
     lv_obj_set_width(ui_LimbControl1, 180);
     lv_obj_set_height(ui_LimbControl1, 150);
