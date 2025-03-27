@@ -10,7 +10,6 @@ void ui_FRScreen_screen_init(void)
     ui_FRScreen = lv_obj_create(NULL);
     lv_obj_clear_flag(ui_FRScreen, LV_OBJ_FLAG_SCROLLABLE);      /// Flags
 
-    create_battery_status(ui_FRScreen);
 
     ui_Button12 = lv_btn_create(ui_FRScreen);
     lv_obj_set_width(ui_Button12, 100);

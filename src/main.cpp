@@ -8,6 +8,7 @@
 #include <ui.h>
 #include <funktions.h>
 #include <LoRa.h>
+#include <esp_sleep.h>
 
 
 //Battery
@@ -26,9 +27,12 @@ static const bool REPEAT_CAL = false;
 static const uint16_t screenWidth  = 480;
 static const uint16_t screenHeight = 320;
 
+//buffers lvgl
 void* lv_mem_pool;
-#define LV_BUF_SIZE (screenWidth * screenHeight)  // Define the size of the screen buffer
+#define LV_BUF_SIZE (screenWidth * screenHeight) // Define the size of the screen buffer
 
+static lv_disp_draw_buf_t draw_buf;
+static lv_color_t buf[ screenWidth * screenHeight / 10 ];
 void* buf1;
 void* buf2;
 
@@ -124,19 +128,20 @@ void setup()
   pinMode(xPinLeft, INPUT);
   pinMode(yPinLeft, INPUT);
   pinMode(VBAT_PIN, INPUT_PULLDOWN);
-  
 
   
   tft.begin();          /* TFT init */
   tft.setRotation( 1 ); /* Landscape orientation, flipped */
 
-  touch_calibrate();
   tft.fillScreen(TFT_BLACK);
   tft.setCursor(20, 0);
   tft.setTextFont(2);
   tft.setTextSize(3);
   tft.setTextColor(TFT_WHITE, TFT_BLACK);
   tft.println("Starting...");
+
+
+  touch_calibrate();
 
   // //Lora Setup
   delay(1000);
@@ -150,9 +155,6 @@ void setup()
     Serial.println("LoRa init failed. Check your connections.");
     while (true);    
   }
-  LoRa.onReceive(onReceive);
-  LoRa.onTxDone(onTxDone);
-  LoRa_rxMode();
   Serial.println("LoRa init succeeded.");
 
   // Check if PSRAM is available
@@ -172,8 +174,8 @@ void setup()
 
   // Allocate screen buffers from PSRAM
   buf1 = ps_malloc(LV_BUF_SIZE * sizeof(lv_color_t));
-  //buf2 = ps_malloc(LV_BUF_SIZE * sizeof(lv_color_t));
-  if (buf1 == NULL ) { // || buf2 == NULL
+  buf2 = ps_malloc(LV_BUF_SIZE * sizeof(lv_color_t));
+  if (buf1 == NULL || buf2 == NULL ) { // || buf2 == NULL
       Serial.println("Failed to allocate screen buffers from PSRAM");
       while (true); // Halt execution if allocation fails
   } else {
@@ -193,8 +195,7 @@ void setup()
 #endif
 
   /*Initialize the display buffer*/
-  static lv_disp_draw_buf_t draw_buf;
-  lv_disp_draw_buf_init( &draw_buf, buf1, NULL, LV_BUF_SIZE);
+  lv_disp_draw_buf_init( &draw_buf, buf1, buf2 , LV_BUF_SIZE);
 
   /*Initialize the display*/
   static lv_disp_drv_t disp_drv;
@@ -218,14 +219,14 @@ void setup()
 
   Serial.println( " LVGL Setup done, starting ESP-Now" );
 
-
-
   Serial.println("Setup done");
 }
 
 //LOOP /////////////////////////////////////////////////////////////////////////////////////
 void loop()
 {
+  // parse for a packet, and call onReceive with the result:
+  int* message = stringToIntArray(onReceive(LoRa.parsePacket()));
   unsigned long currentTime = millis();
 
   if(runEvery(10000, lastRunTimeBattery))
@@ -242,8 +243,11 @@ void loop()
 
     // Check for overdischarge
     if (voltage < 3.0) {
-        Serial.println("Warning: Battery voltage is below the overdischarge detection voltage!");
+        //Serial.println("Warning: Battery voltage is below the overdischarge detection voltage!");
         // Take appropriate action, such as shutting down the system or alerting the user
+        showBatteryWarning("Achtung Batterie leer, Gerät schaltet sich ab.");
+        delay(5000);
+        esp_deep_sleep_start();
     }
     // Calculate the battery percentage
     int percentage = (voltage - 3.0) / (4.2 - 3.0) * 100;
@@ -256,6 +260,11 @@ void loop()
 
   if(is_screen_active(ui_WalkScreen))
   {
+    if(message[0] == 200)
+    {
+      lv_bar_set_value(ui_DistanceBar, message[1], LV_ANIM_ON);
+    }
+
     if(runEvery(500, lastRunTimeController))
     {
       // Serial.println("Read JoystickRight\n");
@@ -265,22 +274,17 @@ void loop()
       // Serial.println("Read JoystickLeft\n");
       // Serial.printf("xPin: %d, yPin: %d", analogRead(xPinLeft), analogRead(yPinLeft));
       joyRight = readJoystick(xPinLeft,yPinLeft);
-      joyRight += 20;
-
+      joyRight += 10;
       manageSend(joyLeft, joyRight);
     }
   }
-  // if(isStanding == 0){
-  //   lv_obj_add_state(ui_LimbControl1, LV_STATE_DISABLED);
-  //   lv_obj_add_state(ui_Walk, LV_STATE_DISABLED);
-  // }else if(isStanding == 1){
-  //   lv_obj_clear_state(ui_LimbControl1, LV_STATE_DISABLED);
-  //   lv_obj_clear_state(ui_Walk, LV_STATE_DISABLED);
-  // }
+  //reset message
+  message = 0;
+
   //LVGL
     // Run LVGL timer handler only when needed
-    if (currentTime >= nextLvTimerRun) {
-      nextLvTimerRun = currentTime + lv_timer_handler();
+  if (currentTime >= nextLvTimerRun) {
+    nextLvTimerRun = currentTime + lv_timer_handler();
   }
   delay(5);
 }
@@ -291,6 +295,7 @@ void touch_calibrate()
   uint16_t calData[5];
   uint8_t calDataOK = 0;
 
+  Serial.println("Starting cal");
   tft.fillScreen(TFT_BLACK);
 
   // check file system
@@ -385,6 +390,12 @@ void my_disp_flush( lv_disp_drv_t *disp, const lv_area_t *area, lv_color_t *colo
 {
     uint32_t w = ( area->x2 - area->x1 + 1 );
     uint32_t h = ( area->y2 - area->y1 + 1 );
+
+    // Serial.print("Flush area: ");
+    // Serial.print("x1: "); Serial.print(area->x1);
+    // Serial.print(", y1: "); Serial.print(area->y1);
+    // Serial.print(", x2: "); Serial.print(area->x2);
+    // Serial.print(", y2: "); Serial.println(area->y2);
 
     tft.startWrite();
     tft.setAddrWindow( area->x1, area->y1, w, h );

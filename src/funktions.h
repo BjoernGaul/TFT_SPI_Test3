@@ -16,7 +16,7 @@ String intArraytoString(int intArray[]) {
           str += ", "; // Add a separator
       }
   }
-  Serial.println(str);
+  // Serial.println(str);
   return str;
 }
 
@@ -79,53 +79,38 @@ boolean runEvery(unsigned long interval, unsigned long &lastRunTime)
   return false;
 }
 
-void LoRa_rxMode(){
-  //Serial.println("LoRa_rxMode");
-  LoRa.enableInvertIQ();                // active invert I and Q signals
-  LoRa.receive();                       // set receive mode
-}
-
-void LoRa_txMode(){
-  //Serial.println("LoRa_txMode");
-  LoRa.idle();  
-  //Serial.println("idle done");          // set standby mode;
-  LoRa.disableInvertIQ();              // normal mode
-  //Serial.println("disableInvertIQ done");
-}
-
 void LoRa_sendMessage(String message) {
-  LoRa_txMode();                       // set tx mode
-  //Serial.println("Begin message");
+  Serial.println("Begin message");
   LoRa.beginPacket();                   // start packet
-  //Serial.println("Begin packet done");
-  LoRa.print(message);                  // add payload
-  //Serial.println("Print done");
-  LoRa.endPacket(false);                 // finish packet and send it
-  //Serial.println("End packet done");
+  LoRa.write(message.length());
+  Serial.println(message.length());
+  LoRa.print(message);
+  Serial.println(message);
+  LoRa.endPacket();
+
 }
 
-void sendJoystick(String joypos){
+String onReceive(int packetSize) {
+  if (packetSize == 0) return "";
+  byte incomingLength = LoRa.read();    // incoming msg length
 
-  //Serial.println(joypos);
-
-  LoRa_sendMessage(joypos);
-}
-
-void onReceive(int packetSize) {
   String message = "";
 
   while (LoRa.available()) {
     message += (char)LoRa.read();
   }
 
-  Serial.print("Node Receive: ");
-  Serial.println(message);
+  if (incomingLength != message.length()) {   // check length for error
+    Serial.println("error: message length does not match length");
+    return "";                             // skip rest of function
+  }
+
+  Serial.println("Message length: " + String(incomingLength));
+  Serial.println("Message: " + message);
+  Serial.println();
+  return message;
 }
 
-void onTxDone() {
-  Serial.println("TxDone");
-  LoRa_rxMode();
-}
 
 void manageSend(uint8_t joyLeft, uint8_t joyRight)
 {
@@ -135,7 +120,7 @@ void manageSend(uint8_t joyLeft, uint8_t joyRight)
   if(!taskLeft)
   {
     int msgArray[2] = {100, joyRight};
-    sendJoystick(intArraytoString(msgArray));
+    LoRa_sendMessage(intArraytoString(msgArray));
     taskLeft = joyRight;
   }else if(taskLeft != joyRight)
   {
@@ -145,7 +130,7 @@ void manageSend(uint8_t joyLeft, uint8_t joyRight)
   if(!taskRight)
   {
     int msgArray[2] = {101, joyLeft};
-    sendJoystick(intArraytoString(msgArray));
+    LoRa_sendMessage(intArraytoString(msgArray));
     taskRight = joyLeft;
   }else if(taskRight != joyLeft)
   {

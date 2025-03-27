@@ -31,6 +31,7 @@ extern "C" {
 void create_battery_status(lv_obj_t *parent);
 void update_battery_status(int percentage);
 void delete_battery_status();
+void showBatteryWarning(const char* message);
 
 // SCREEN: ui_HomeScreen
 void ui_HomeScreen_screen_init(void);
@@ -42,10 +43,10 @@ void ui_event_Walk(lv_event_t * e);
 extern lv_obj_t * ui_Walk;
 extern lv_obj_t * ui_Lable2;
 void ui_event_Placeholder2(lv_event_t * e);
-extern lv_obj_t * ui_Placeholder2;
+extern lv_obj_t * ui_sitDown;
 extern lv_obj_t * ui_Lable3;
 void ui_event_Placeholder1(lv_event_t * e);
-extern lv_obj_t * ui_Placeholder1;
+extern lv_obj_t * ui_standup;
 extern lv_obj_t * ui_Lable4;
 void ui_event_Placeholder(lv_event_t * e);
 extern lv_obj_t * ui_Placeholder;

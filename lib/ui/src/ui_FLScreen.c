@@ -10,7 +10,6 @@ void ui_FLScreen_screen_init(void)
     ui_FLScreen = lv_obj_create(NULL);
     lv_obj_clear_flag(ui_FLScreen, LV_OBJ_FLAG_SCROLLABLE);      /// Flags
 
-    create_battery_status(ui_FLScreen);
 
     ui_FLLabel5 = lv_label_create(ui_FLScreen);
     lv_obj_set_width(ui_FLLabel5, LV_SIZE_CONTENT);   /// 1
