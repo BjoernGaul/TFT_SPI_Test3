@@ -267,9 +267,6 @@ void ui_event_Walk(lv_event_t * e)
     if(event_code == LV_EVENT_CLICKED) {
         _ui_screen_change(&ui_WalkScreen, LV_SCR_LOAD_ANIM_NONE, 500, 0, &ui_WalkScreen_screen_init);
     }
-    if(event_code == LV_EVENT_CLICKED) {
-        getPositionLegs(e);
-    }
 }
 
 void ui_event_Placeholder2(lv_event_t * e)

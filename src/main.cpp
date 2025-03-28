@@ -77,7 +77,6 @@ uint16_t lastPosCheck = 0;
 //Variables Communication
 const uint8_t sit = 0;
 const uint8_t stand = 1;
-const uint8_t crab = 2;
 const uint8_t FLS = 10;
 const uint8_t FLT = 11;
 const uint8_t FLB = 12;
@@ -228,6 +227,37 @@ void loop()
   // parse for a packet, and call onReceive with the result:
   int* message = stringToIntArray(onReceive(LoRa.parsePacket()));
   unsigned long currentTime = millis();
+
+  switch(message[0])
+  {
+    case FLS:
+      lv_slider_set_value(ui_flSideSlider, message[1], LV_ANIM_OFF);
+    case FLT:
+      lv_slider_set_value(ui_flTopSlider, message[1], LV_ANIM_OFF);
+    case FLB:
+      lv_slider_set_value(ui_flBotSlider, message[1], LV_ANIM_OFF);
+    case FRS:
+      lv_slider_set_value(ui_flSideSlider2, message[1], LV_ANIM_OFF);
+    case FRT: 
+      lv_slider_set_value(ui_flTopSlider2, message[1], LV_ANIM_OFF);
+    case FRB:
+      lv_slider_set_value(ui_flBotSlider2, message[1], LV_ANIM_OFF);
+    case BLS:
+      lv_slider_set_value(ui_flSideSlider1, message[1], LV_ANIM_OFF);
+    case BLT:
+      lv_slider_set_value(ui_flTopSlider1, message[1], LV_ANIM_OFF);
+    case BLB:
+      lv_slider_set_value(ui_flBotSlider1, message[1], LV_ANIM_OFF);
+    case BRS:
+      lv_slider_set_value(ui_flSideSlider3, message[1], LV_ANIM_OFF);
+    case BRT:
+      lv_slider_set_value(ui_flTopSlider3, message[1], LV_ANIM_OFF);   
+    case BRB:
+      lv_slider_set_value(ui_flBotSlider3, message[1], LV_ANIM_OFF);   
+    default:
+      ;
+  }
+
 
   if(runEvery(10000, lastRunTimeBattery))
   {
@@ -409,7 +439,7 @@ void my_disp_flush( lv_disp_drv_t *disp, const lv_area_t *area, lv_color_t *colo
 
 void getPositionLegs(lv_event_t * e)
 {
-
+  LoRa_sendMessage(String(gimmePosLegs));
 }
 
 //Positions/////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -423,10 +453,6 @@ void standSend1(lv_event_t * e){
   LoRa_sendMessage(String(stand));
 }
 
-void crabSend1(lv_event_t * e){
-  Serial.println("Crab1");
-  LoRa_sendMessage(String(crab));
-}
 
 void resetPositionDog(lv_event_t * e){
   Serial.println("Reset");
