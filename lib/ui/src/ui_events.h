@@ -10,6 +10,7 @@
 extern "C" {
 #endif
 
+void sendHump(lv_event_t * e);
 void getPositionLegs(lv_event_t * e);
 void sendSit1(lv_event_t * e);
 void standSend1(lv_event_t * e);

@@ -100,9 +100,9 @@ lv_obj_t * ui_Lable3;
 void ui_event_Placeholder1(lv_event_t * e);
 lv_obj_t * ui_standup;
 lv_obj_t * ui_Lable4;
-void ui_event_Placeholder(lv_event_t * e);
-lv_obj_t * ui_Placeholder;
-lv_obj_t * ui_Lable5;
+void ui_event_Hump(lv_event_t * e);
+lv_obj_t * ui_HumpBut;
+lv_obj_t * ui_HumpLable;
 // CUSTOM VARIABLES
 lv_obj_t * uic_HomeScreen;
 lv_obj_t * uic_LimbControl;
@@ -287,12 +287,12 @@ void ui_event_Placeholder1(lv_event_t * e)
     }
 }
 
-void ui_event_Placeholder(lv_event_t * e)
+void ui_event_Hump(lv_event_t * e)
 {
     lv_event_code_t event_code = lv_event_get_code(e);
 
     if(event_code == LV_EVENT_CLICKED) {
-        crabSend1(e);
+        sendHump(e);
     }
 }
 

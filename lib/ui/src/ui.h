@@ -48,9 +48,9 @@ extern lv_obj_t * ui_Lable3;
 void ui_event_Placeholder1(lv_event_t * e);
 extern lv_obj_t * ui_standup;
 extern lv_obj_t * ui_Lable4;
-void ui_event_Placeholder(lv_event_t * e);
-extern lv_obj_t * ui_Placeholder;
-extern lv_obj_t * ui_Lable5;
+void ui_event_Hump(lv_event_t * e);
+extern lv_obj_t * ui_HumpBut;
+extern lv_obj_t * ui_HumpLable;
 // CUSTOM VARIABLES
 extern lv_obj_t * uic_HomeScreen;
 extern lv_obj_t * uic_LimbControl;

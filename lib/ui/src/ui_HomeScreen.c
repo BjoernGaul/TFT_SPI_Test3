@@ -4,6 +4,7 @@
 // Project name: SquareLine_Project
 
 #include "ui.h"
+// #include "IMG_LogoWufar.h"
 
 void ui_HomeScreen_screen_init(void)
 {
@@ -84,7 +85,7 @@ void ui_HomeScreen_screen_init(void)
     ui_standup = lv_btn_create(ui_HomeScreen);
     lv_obj_set_width(ui_standup, 150);
     lv_obj_set_height(ui_standup, 150);
-    lv_obj_set_x(ui_standup, 0);
+    lv_obj_set_x(ui_standup, 160);
     lv_obj_set_y(ui_standup, 80);
     lv_obj_set_align(ui_standup, LV_ALIGN_CENTER);
     lv_obj_add_flag(ui_standup, LV_OBJ_FLAG_SCROLL_ON_FOCUS);     /// Flags
@@ -103,21 +104,44 @@ void ui_HomeScreen_screen_init(void)
     lv_obj_set_style_text_opa(ui_Lable4, 255, LV_PART_MAIN | LV_STATE_DEFAULT);
     lv_obj_set_style_text_align(ui_Lable4, LV_TEXT_ALIGN_CENTER, LV_PART_MAIN | LV_STATE_DEFAULT);
     lv_obj_set_style_text_font(ui_Lable4, &lv_font_montserrat_24, LV_PART_MAIN | LV_STATE_DEFAULT);
+    
+    // // Create an image object
+    // lv_obj_t *img = lv_img_create(LogoWufarCut_smol_map);
 
-    ui_Placeholder = lv_btn_create(ui_HomeScreen);
-    lv_obj_set_width(ui_Placeholder, 150);
-    lv_obj_set_height(ui_Placeholder, 150);
-    lv_obj_set_x(ui_Placeholder, 160);
-    lv_obj_set_y(ui_Placeholder, 80);
-    lv_obj_set_align(ui_Placeholder, LV_ALIGN_CENTER);
-    lv_obj_add_flag(ui_Placeholder, LV_OBJ_FLAG_SCROLL_ON_FOCUS);     /// Flags
-    lv_obj_clear_flag(ui_Placeholder, LV_OBJ_FLAG_SCROLLABLE);      /// Flags
-    lv_obj_set_style_bg_color(ui_Placeholder, lv_color_hex(0x7E0000), LV_PART_MAIN | LV_STATE_DEFAULT);
-    lv_obj_set_style_bg_opa(ui_Placeholder, 255, LV_PART_MAIN | LV_STATE_DEFAULT);
-    lv_obj_set_style_text_color(ui_Placeholder, lv_color_hex(0xFF0000), LV_PART_MAIN | LV_STATE_DEFAULT);
-    lv_obj_set_style_text_opa(ui_Placeholder, 255, LV_PART_MAIN | LV_STATE_DEFAULT);
+    // // Set the image source
+    // lv_img_set_src(img, &LogoWufarCut_smol_map);
 
+    // // Resize the image
+    // lv_obj_set_width(img, 150);  // Set the width to 100 pixels
+    // lv_obj_set_height(img, 150); // Set the height to 100 pixels
 
+    // // Align the image (optional)
+    // lv_obj_align(img, LV_ALIGN_CENTER, 80, 0);
+
+    ui_HumpBut = lv_btn_create(ui_HomeScreen);
+    lv_obj_set_width(ui_HumpBut, 150);
+    lv_obj_set_height(ui_HumpBut, 150);
+    lv_obj_set_x(ui_HumpBut, 0);
+    lv_obj_set_y(ui_HumpBut, 80);
+    lv_obj_set_align(ui_HumpBut, LV_ALIGN_CENTER);
+    lv_obj_add_flag(ui_HumpBut, LV_OBJ_FLAG_SCROLL_ON_FOCUS);     /// Flags
+    lv_obj_clear_flag(ui_HumpBut, LV_OBJ_FLAG_SCROLLABLE);      /// Flags
+    lv_obj_set_style_bg_color(ui_HumpBut, lv_color_hex(0x7E0000), LV_PART_MAIN | LV_STATE_DEFAULT);
+    lv_obj_set_style_bg_opa(ui_HumpBut, 255, LV_PART_MAIN | LV_STATE_DEFAULT);
+    lv_obj_set_style_text_color(ui_HumpBut, lv_color_hex(0xFF0000), LV_PART_MAIN | LV_STATE_DEFAULT);
+    lv_obj_set_style_text_opa(ui_HumpBut, 255, LV_PART_MAIN | LV_STATE_DEFAULT);
+
+    ui_HumpLable = lv_label_create(ui_HumpBut);
+    lv_obj_set_width(ui_HumpLable, LV_SIZE_CONTENT);   /// 1
+    lv_obj_set_height(ui_HumpLable, LV_SIZE_CONTENT);    /// 1
+    lv_obj_set_align(ui_HumpLable, LV_ALIGN_CENTER);
+    lv_label_set_text(ui_HumpLable, "Hump");
+    lv_obj_set_style_text_color(ui_HumpLable, lv_color_hex(0xFFFFFF), LV_PART_MAIN | LV_STATE_DEFAULT);
+    lv_obj_set_style_text_opa(ui_HumpLable, 255, LV_PART_MAIN | LV_STATE_DEFAULT);
+    lv_obj_set_style_text_align(ui_HumpLable, LV_TEXT_ALIGN_CENTER, LV_PART_MAIN | LV_STATE_DEFAULT);
+    lv_obj_set_style_text_font(ui_HumpLable, &lv_font_montserrat_24, LV_PART_MAIN | LV_STATE_DEFAULT);
+
+    lv_obj_add_event_cb(ui_HumpBut, ui_event_Hump, LV_EVENT_ALL, NULL);
     lv_obj_add_event_cb(ui_LimbControl1, ui_event_LimbControl1, LV_EVENT_ALL, NULL);
     lv_obj_add_event_cb(ui_Walk, ui_event_Walk, LV_EVENT_ALL, NULL);
     lv_obj_add_event_cb(ui_sitDown, ui_event_Placeholder2, LV_EVENT_ALL, NULL);

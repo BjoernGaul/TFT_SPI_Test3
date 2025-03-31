@@ -119,20 +119,20 @@ void manageSend(uint8_t joyLeft, uint8_t joyRight)
   static uint8_t taskRight = 0;
   if(!taskLeft)
   {
-    int msgArray[2] = {100, joyRight};
+    int msgArray[2] = {100, joyLeft};
     LoRa_sendMessage(intArraytoString(msgArray));
-    taskLeft = joyRight;
-  }else if(taskLeft != joyRight)
+    taskLeft = joyLeft;
+  }else if(taskLeft != joyLeft)
   {
     taskLeft = 0;
   }
   
   if(!taskRight)
   {
-    int msgArray[2] = {101, joyLeft};
+    int msgArray[2] = {101, joyRight};
     LoRa_sendMessage(intArraytoString(msgArray));
-    taskRight = joyLeft;
-  }else if(taskRight != joyLeft)
+    taskRight = joyRight;
+  }else if(taskRight != joyRight)
   {
     taskRight = 0;
   }

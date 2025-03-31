@@ -75,8 +75,9 @@ uint16_t lastPosCheck = 0;
 
 
 //Variables Communication
-const uint8_t sit = 0;
-const uint8_t stand = 1;
+const uint8_t sit = 1;
+const uint8_t stand = 2;
+const uint8_t codeHump = 3;
 const uint8_t FLS = 10;
 const uint8_t FLT = 11;
 const uint8_t FLB = 12;
@@ -228,36 +229,40 @@ void loop()
   int* message = stringToIntArray(onReceive(LoRa.parsePacket()));
   unsigned long currentTime = millis();
 
-  switch(message[0])
-  {
-    case FLS:
-      lv_slider_set_value(ui_flSideSlider, message[1], LV_ANIM_OFF);
-    case FLT:
-      lv_slider_set_value(ui_flTopSlider, message[1], LV_ANIM_OFF);
-    case FLB:
-      lv_slider_set_value(ui_flBotSlider, message[1], LV_ANIM_OFF);
-    case FRS:
-      lv_slider_set_value(ui_flSideSlider2, message[1], LV_ANIM_OFF);
-    case FRT: 
-      lv_slider_set_value(ui_flTopSlider2, message[1], LV_ANIM_OFF);
-    case FRB:
-      lv_slider_set_value(ui_flBotSlider2, message[1], LV_ANIM_OFF);
-    case BLS:
-      lv_slider_set_value(ui_flSideSlider1, message[1], LV_ANIM_OFF);
-    case BLT:
-      lv_slider_set_value(ui_flTopSlider1, message[1], LV_ANIM_OFF);
-    case BLB:
-      lv_slider_set_value(ui_flBotSlider1, message[1], LV_ANIM_OFF);
-    case BRS:
-      lv_slider_set_value(ui_flSideSlider3, message[1], LV_ANIM_OFF);
-    case BRT:
-      lv_slider_set_value(ui_flTopSlider3, message[1], LV_ANIM_OFF);   
-    case BRB:
-      lv_slider_set_value(ui_flBotSlider3, message[1], LV_ANIM_OFF);   
-    default:
-      ;
-  }
+  if(message[0] != 0){
 
+    Serial.printf("%d %d", message[0], message[1]);
+
+    switch(message[0])
+    {
+      case FLS:
+        lv_slider_set_value(ui_flSideSlider, message[1], LV_ANIM_OFF);
+      case FLT:
+        lv_slider_set_value(ui_flTopSlider, message[1], LV_ANIM_OFF);
+      case FLB:
+        lv_slider_set_value(ui_flBotSlider, message[1], LV_ANIM_OFF);
+      case FRS:
+        lv_slider_set_value(ui_flSideSlider2, message[1], LV_ANIM_OFF);
+      case FRT: 
+        lv_slider_set_value(ui_flTopSlider2, message[1], LV_ANIM_OFF);
+      case FRB:
+        lv_slider_set_value(ui_flBotSlider2, message[1], LV_ANIM_OFF);
+      case BLS:
+        lv_slider_set_value(ui_flSideSlider1, message[1], LV_ANIM_OFF);
+      case BLT:
+        lv_slider_set_value(ui_flTopSlider1, message[1], LV_ANIM_OFF);
+      case BLB:
+        lv_slider_set_value(ui_flBotSlider1, message[1], LV_ANIM_OFF);
+      case BRS:
+        lv_slider_set_value(ui_flSideSlider3, message[1], LV_ANIM_OFF);
+      case BRT:
+        lv_slider_set_value(ui_flTopSlider3, message[1], LV_ANIM_OFF);   
+      case BRB:
+        lv_slider_set_value(ui_flBotSlider3, message[1], LV_ANIM_OFF);   
+      default:
+        ;
+    }
+  }
 
   if(runEvery(10000, lastRunTimeBattery))
   {
@@ -442,6 +447,11 @@ void getPositionLegs(lv_event_t * e)
   LoRa_sendMessage(String(gimmePosLegs));
 }
 
+void sendHump(lv_event_t * e)
+{
+  LoRa_sendMessage(String(codeHump));
+}
+
 //Positions/////////////////////////////////////////////////////////////////////////////////////////////////////
 void sendSit1(lv_event_t * e){
   Serial.println("Sit1");
@@ -456,7 +466,7 @@ void standSend1(lv_event_t * e){
 
 void resetPositionDog(lv_event_t * e){
   Serial.println("Reset");
-  LoRa_sendMessage(String(reset));
+  //LoRa_sendMessage(String(reset));
 }
 
 

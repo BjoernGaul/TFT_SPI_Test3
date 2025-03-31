@@ -44,7 +44,7 @@ void ui_BLScreen_screen_init(void)
     lv_obj_set_style_text_font(ui_Bottom1, &lv_font_montserrat_14, LV_PART_MAIN | LV_STATE_DEFAULT);
 
     ui_flSideSlider1 = lv_slider_create(ui_BLScreen);
-    lv_slider_set_range(ui_flSideSlider1, -90, 90);
+    lv_slider_set_range(ui_flSideSlider1, -25, 230);
     lv_slider_set_value(ui_flSideSlider1, 0, LV_ANIM_OFF);
     if(lv_slider_get_mode(ui_flSideSlider1) == LV_SLIDER_MODE_RANGE) lv_slider_set_left_value(ui_flSideSlider1, 0,
                                                                                                   LV_ANIM_OFF);
@@ -67,7 +67,7 @@ void ui_BLScreen_screen_init(void)
     lv_obj_set_style_outline_pad(ui_flSideSlider1, 0, LV_PART_KNOB | LV_STATE_DEFAULT);
 
     ui_flTopSlider1 = lv_slider_create(ui_BLScreen);
-    lv_slider_set_range(ui_flTopSlider1, -90, 90);
+    lv_slider_set_range(ui_flTopSlider1, -25, 230);
     lv_slider_set_value(ui_flTopSlider1, 0, LV_ANIM_OFF);
     if(lv_slider_get_mode(ui_flTopSlider1) == LV_SLIDER_MODE_RANGE) lv_slider_set_left_value(ui_flTopSlider1, 0,
                                                                                                  LV_ANIM_OFF);
@@ -90,7 +90,7 @@ void ui_BLScreen_screen_init(void)
     lv_obj_set_style_outline_pad(ui_flTopSlider1, 0, LV_PART_KNOB | LV_STATE_DEFAULT);
 
     ui_flBotSlider1 = lv_slider_create(ui_BLScreen);
-    lv_slider_set_range(ui_flBotSlider1, -90, 90);
+    lv_slider_set_range(ui_flBotSlider1, -25, 230);
     lv_slider_set_value(ui_flBotSlider1, 0, LV_ANIM_OFF);
     if(lv_slider_get_mode(ui_flBotSlider1) == LV_SLIDER_MODE_RANGE) lv_slider_set_left_value(ui_flBotSlider1, 0,
                                                                                                  LV_ANIM_OFF);
