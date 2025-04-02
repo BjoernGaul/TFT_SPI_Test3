@@ -33,6 +33,10 @@ void update_battery_status(int percentage);
 void delete_battery_status();
 void showBatteryWarning(const char* message);
 
+//waring
+void show_warning_label(const char *message);
+extern lv_obj_t * warning_container;
+
 // SCREEN: ui_HomeScreen
 void ui_HomeScreen_screen_init(void);
 extern lv_obj_t * ui_HomeScreen;

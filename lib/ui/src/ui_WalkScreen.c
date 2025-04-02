@@ -12,8 +12,8 @@ void ui_WalkScreen_screen_init(void)
 
     
     ui_DistanceBar = lv_bar_create(ui_WalkScreen);
-    lv_bar_set_value(ui_DistanceBar, 25, LV_ANIM_OFF);
     lv_bar_set_start_value(ui_DistanceBar, 0, LV_ANIM_OFF);
+    lv_bar_set_range(ui_DistanceBar, 0, 200);
     lv_obj_set_width(ui_DistanceBar, 300);
     lv_obj_set_height(ui_DistanceBar, 40);
     lv_obj_set_x(ui_DistanceBar, 0);

@@ -110,6 +110,7 @@ lv_obj_t * uic_LimbControl;
 lv_obj_t * uic_LimbControl;
 lv_obj_t * uic_LimbControl;
 lv_obj_t * uic_LimbControl;
+lv_obj_t * warning_container;
 
 
 // SCREEN: ui_LCScreen
@@ -496,6 +497,23 @@ void ui_event_backButton2(lv_event_t * e)
     if(event_code == LV_EVENT_CLICKED) {
         _ui_screen_change(&ui_LCScreen, LV_SCR_LOAD_ANIM_NONE, 500, 0, &ui_LCScreen_screen_init);
     }
+}
+
+void show_warning_label(const char *message) {
+    // Create a full-screen container for the warning
+    warning_container = lv_obj_create(lv_scr_act());
+    lv_obj_set_size(warning_container, lv_obj_get_width(lv_scr_act()), lv_obj_get_height(lv_scr_act()));
+    lv_obj_set_style_bg_color(warning_container, lv_color_hex(0xFF0000), 0); // Red background
+    lv_obj_set_style_bg_opa(warning_container, LV_OPA_50, 0);                // Semi-transparent
+    lv_obj_add_flag(warning_container, LV_OBJ_FLAG_CLICKABLE);              // Block interactions with underlying objects
+
+    // Create a label for the warning message
+    lv_obj_t *warning_label = lv_label_create(warning_container);
+    lv_label_set_text(warning_label, message);
+    lv_obj_set_style_text_color(warning_label, lv_color_hex(0xFFFFFF), 0);  // White text
+    lv_obj_set_style_text_font(warning_label, &lv_font_montserrat_24, 0);  // Font size
+    lv_obj_align(warning_label, LV_ALIGN_CENTER, 0, 0);                    // Center the label
+
 }
 
 ///////////////////// SCREENS ////////////////////

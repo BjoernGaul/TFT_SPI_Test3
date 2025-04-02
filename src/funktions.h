@@ -137,4 +137,3 @@ void manageSend(uint8_t joyLeft, uint8_t joyRight)
     taskRight = 0;
   }
 }
-

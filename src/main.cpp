@@ -23,7 +23,7 @@ unsigned long nextLvTimerRun = 0;
 static const String CALIBRATION_FILE =  "/calibrationData";
 static const bool REPEAT_CAL = false;
 
-/*Change to your screen resolution*/
+/*screen resolution*/
 static const uint16_t screenWidth  = 480;
 static const uint16_t screenHeight = 320;
 
@@ -94,7 +94,7 @@ const uint8_t isStanding = 69;
 const uint8_t gimmePosLegs = 250;
 const uint8_t reset = 255;
 int msgArray[2];
-
+bool warningON = false;
 
 #if LV_USE_LOG != 0
 /* Serial debugging */
@@ -149,8 +149,6 @@ void setup()
   LoRa.setSPI(SPILora);
   LoRa.setPins( loraCS , -1 , loraDIO0 );
   delay(500);
-  // pinMode(NSS, OUTPUT);
-  // digitalWrite(NSS, HIGH); // Deactivate LoRa CS  
   if (!LoRa.begin(loraFrequency)) {
     Serial.println("LoRa init failed. Check your connections.");
     while (true);    
@@ -231,35 +229,59 @@ void loop()
 
   if(message[0] != 0){
 
-    Serial.printf("%d %d", message[0], message[1]);
+    Serial.printf("%d %d \n", message[0], message[1]);
 
     switch(message[0])
     {
       case FLS:
         lv_slider_set_value(ui_flSideSlider, message[1], LV_ANIM_OFF);
+        // Serial.println("FLS");
+        break;
       case FLT:
         lv_slider_set_value(ui_flTopSlider, message[1], LV_ANIM_OFF);
+        // Serial.println("FLt");
+        break;
       case FLB:
         lv_slider_set_value(ui_flBotSlider, message[1], LV_ANIM_OFF);
+        // Serial.println("FLb");
+        break;
       case FRS:
         lv_slider_set_value(ui_flSideSlider2, message[1], LV_ANIM_OFF);
+        // Serial.println("FrS");
+        break;
       case FRT: 
         lv_slider_set_value(ui_flTopSlider2, message[1], LV_ANIM_OFF);
+        // Serial.println("Frt");
+        break;
       case FRB:
         lv_slider_set_value(ui_flBotSlider2, message[1], LV_ANIM_OFF);
+        // Serial.println("Frb");
+        break;
       case BLS:
         lv_slider_set_value(ui_flSideSlider1, message[1], LV_ANIM_OFF);
+        // Serial.println("bLS");
+        break;
       case BLT:
         lv_slider_set_value(ui_flTopSlider1, message[1], LV_ANIM_OFF);
+        // Serial.println("blt");
+        break;
       case BLB:
         lv_slider_set_value(ui_flBotSlider1, message[1], LV_ANIM_OFF);
+        // Serial.println("blb");
+        break;
       case BRS:
         lv_slider_set_value(ui_flSideSlider3, message[1], LV_ANIM_OFF);
+        // Serial.println("brs");
+        break;
       case BRT:
         lv_slider_set_value(ui_flTopSlider3, message[1], LV_ANIM_OFF);   
+        // Serial.println("brt");
+        break;
       case BRB:
-        lv_slider_set_value(ui_flBotSlider3, message[1], LV_ANIM_OFF);   
+        lv_slider_set_value(ui_flBotSlider3, message[1], LV_ANIM_OFF);  
+        break;
       default:
+        break;
         ;
     }
   }
@@ -279,7 +301,6 @@ void loop()
     // Check for overdischarge
     if (voltage < 3.0) {
         //Serial.println("Warning: Battery voltage is below the overdischarge detection voltage!");
-        // Take appropriate action, such as shutting down the system or alerting the user
         showBatteryWarning("Achtung Batterie leer, Gerät schaltet sich ab.");
         delay(5000);
         esp_deep_sleep_start();
@@ -298,6 +319,14 @@ void loop()
     if(message[0] == 200)
     {
       lv_bar_set_value(ui_DistanceBar, message[1], LV_ANIM_ON);
+      if(message[1] <= 15)
+      {
+        show_warning_label("Colission Warning! \n Back up!");
+        warningON = true;
+      }else if(warningON && (message[1] > 17))
+      {
+        lv_obj_del(warning_container);
+      }
     }
 
     if(runEvery(500, lastRunTimeController))
@@ -410,14 +439,6 @@ void my_touchpad_read( lv_indev_drv_t * indev_driver, lv_indev_data_t * data )
         data->point.x = touchX;
         data->point.y = touchY;
 
-        // Serial.print( "Data x " );
-        // Serial.println( touchX );
-
-        // Serial.print( "Data y " );
-        // Serial.println( touchY );
-        // Serial.printf("posFLS: %d\n", posFLS);
-        // Serial.printf("posFLT: %d\n", posFLT);
-        // Serial.printf("posFLB: %d\n", posFLB);
     }
 }
 
@@ -426,11 +447,6 @@ void my_disp_flush( lv_disp_drv_t *disp, const lv_area_t *area, lv_color_t *colo
     uint32_t w = ( area->x2 - area->x1 + 1 );
     uint32_t h = ( area->y2 - area->y1 + 1 );
 
-    // Serial.print("Flush area: ");
-    // Serial.print("x1: "); Serial.print(area->x1);
-    // Serial.print(", y1: "); Serial.print(area->y1);
-    // Serial.print(", x2: "); Serial.print(area->x2);
-    // Serial.print(", y2: "); Serial.println(area->y2);
 
     tft.startWrite();
     tft.setAddrWindow( area->x1, area->y1, w, h );
@@ -444,6 +460,7 @@ void my_disp_flush( lv_disp_drv_t *disp, const lv_area_t *area, lv_color_t *colo
 
 void getPositionLegs(lv_event_t * e)
 {
+
   LoRa_sendMessage(String(gimmePosLegs));
 }
 
@@ -466,7 +483,6 @@ void standSend1(lv_event_t * e){
 
 void resetPositionDog(lv_event_t * e){
   Serial.println("Reset");
-  //LoRa_sendMessage(String(reset));
 }
 
 
